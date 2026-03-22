@@ -151,8 +151,9 @@ export function recipeEditView(params: Record<string, string>) {
         document.getElementById('ing-modal')!.classList.add('hidden');
       });
 
-      // Show ingredient add modal with unit picker
-      const showIngredientModal = (food: Food) => {
+      // Show ingredient add/edit modal with unit picker
+      const showIngredientModal = (food: Food, editIndex?: number) => {
+        const isEdit = editIndex !== undefined;
         const modal = document.getElementById('ing-modal')!;
         document.getElementById('ing-modal-name')!.textContent = food.name;
         const body = document.getElementById('ing-modal-body')!;
@@ -186,20 +187,22 @@ export function recipeEditView(params: Record<string, string>) {
             <label for="ing-qty">Quantity</label>
             <div class="servings-control">
               <button type="button" id="ing-qty-minus" class="btn-icon">-</button>
-              <input type="number" id="ing-qty" value="1" min="0.25" step="0.25" />
+              <input type="number" id="ing-qty" value="${isEdit ? Math.round((ingredients[editIndex!].servings) * 100) / 100 : 1}" min="0.25" step="0.25" />
               <button type="button" id="ing-qty-plus" class="btn-icon">+</button>
             </div>
           </div>
-          <div class="modal-total" id="ing-modal-total">
-            <span>${baseCal} kcal</span>
-            <span>${baseC}g C</span>
-            <span>${baseP}g P</span>
-            <span>${baseF}g F</span>
+          <div class="modal-total" id="ing-modal-total"></div>
+          <div class="form-row">
+            <button type="button" id="ing-add-btn" class="btn btn-primary" style="flex:1">${isEdit ? 'Update' : 'Add Ingredient'}</button>
+            ${isEdit ? '<button type="button" id="ing-remove-btn" class="btn btn-danger" style="flex:0 0 auto">Remove</button>' : ''}
           </div>
-          <button type="button" id="ing-add-btn" class="btn btn-primary btn-block">Add Ingredient</button>
         `;
 
         let unitScale = 1;
+        // When editing, try to recover the unit scale from stored servings
+        if (isEdit && !hasMeasures) {
+          unitScale = ingredients[editIndex!].servings / (parseFloat((document.getElementById('ing-qty') as HTMLInputElement).value) || 1);
+        }
         const qtyInput = document.getElementById('ing-qty') as HTMLInputElement;
         const unitSelect = document.getElementById('ing-unit-select') as HTMLSelectElement | null;
 
@@ -247,6 +250,9 @@ export function recipeEditView(params: Record<string, string>) {
           updateTotal();
         });
 
+        // Initial render
+        updateTotal();
+
         document.getElementById('ing-add-btn')!.addEventListener('click', () => {
           const qty = parseFloat(qtyInput.value) || 1;
           const effectiveServings = qty * unitScale;
@@ -258,14 +264,32 @@ export function recipeEditView(params: Record<string, string>) {
           } else {
             unitLabel = qty !== 1 ? `${qty}x ${food.serving_size}${food.serving_unit}` : `${food.serving_size}${food.serving_unit}`;
           }
-          ingredients.push({ foodId: food.id, servings: effectiveServings, food: food as any, unitLabel });
-          renderIngredients(ingredients, mode);
+          if (isEdit) {
+            ingredients[editIndex!] = { foodId: food.id, servings: effectiveServings, food: food as any, unitLabel };
+          } else {
+            ingredients.push({ foodId: food.id, servings: effectiveServings, food: food as any, unitLabel });
+          }
+          renderIngredients(ingredients, mode, onEditIngredient);
           modal.classList.add('hidden');
           document.getElementById('ing-results')!.classList.add('hidden');
           (document.getElementById('ing-search') as HTMLInputElement).value = '';
         });
 
+        document.getElementById('ing-remove-btn')?.addEventListener('click', () => {
+          ingredients.splice(editIndex!, 1);
+          renderIngredients(ingredients, mode, onEditIngredient);
+          modal.classList.add('hidden');
+        });
+
         modal.classList.remove('hidden');
+      };
+
+      // Edit callback for ingredient rows
+      const onEditIngredient = (idx: number) => {
+        const ing = ingredients[idx];
+        // The food may be a RecipeIngredient (from server) — cast to Food for the modal
+        const food = ing.food as Food;
+        showIngredientModal(food, idx);
       };
 
       // Mode toggle
@@ -310,7 +334,7 @@ export function recipeEditView(params: Record<string, string>) {
             document.getElementById('ingredients-section')!.classList.add('hidden');
             document.getElementById('manual-section')!.classList.remove('hidden');
           }
-        });
+        }, onEditIngredient);
       }
 
       // Ingredient search
@@ -426,8 +450,9 @@ export function recipeEditView(params: Record<string, string>) {
 
 async function loadExistingRecipe(
   id: number,
-  ingredients: { foodId: number; servings: number; food: Food | RecipeIngredient }[],
-  onMode: (mode: 'ingredients' | 'manual') => void
+  ingredients: { foodId: number; servings: number; food: Food | RecipeIngredient; unitLabel?: string }[],
+  onMode: (mode: 'ingredients' | 'manual') => void,
+  onEdit?: (idx: number) => void
 ) {
   try {
     const { recipe, ingredients: ings } = await recipesApi.get(id);
@@ -447,7 +472,7 @@ async function loadExistingRecipe(
       for (const ing of ings) {
         ingredients.push({ foodId: ing.food_id, servings: ing.servings, food: ing });
       }
-      renderIngredients(ingredients, 'ingredients');
+      renderIngredients(ingredients, 'ingredients', onEdit);
     }
   } catch {
     // Ignore
@@ -494,7 +519,8 @@ function updateTotals(
 
 function renderIngredients(
   ingredients: { foodId: number; servings: number; food: Food | RecipeIngredient; unitLabel?: string }[],
-  mode: 'ingredients' | 'manual'
+  mode: 'ingredients' | 'manual',
+  onEdit?: (idx: number) => void
 ) {
   const container = document.getElementById('ingredients-list')!;
 
@@ -521,7 +547,7 @@ function renderIngredients(
     const el = document.createElement('div');
     el.className = 'ingredient-row';
     el.innerHTML = `
-      <div class="ingredient-info">
+      <div class="ingredient-info ingredient-clickable" data-idx="${idx}">
         <span class="ingredient-name">${f.name}</span>
         <span class="ingredient-unit">${unit}</span>
       </div>
@@ -538,12 +564,23 @@ function renderIngredients(
 
   updateTotals(ingredients, mode);
 
+  // Edit handlers
+  if (onEdit) {
+    container.querySelectorAll('.ingredient-clickable').forEach((el) => {
+      el.addEventListener('click', () => {
+        const idx = parseInt((el as HTMLElement).dataset.idx || '0');
+        onEdit(idx);
+      });
+    });
+  }
+
   // Remove handlers
   container.querySelectorAll('.btn-remove-ing').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const idx = parseInt((btn as HTMLElement).dataset.idx || '0');
       ingredients.splice(idx, 1);
-      renderIngredients(ingredients, mode);
+      renderIngredients(ingredients, mode, onEdit);
     });
   });
 }

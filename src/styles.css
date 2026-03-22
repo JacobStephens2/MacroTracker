@@ -812,6 +812,14 @@ input.searching,
   display: block;
 }
 
+.ingredient-clickable {
+  cursor: pointer;
+}
+
+.ingredient-clickable:hover .ingredient-name {
+  color: var(--primary);
+}
+
 .ingredient-macros {
   display: flex;
   gap: 3px;
