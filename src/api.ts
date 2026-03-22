@@ -153,6 +153,12 @@ export const meals = {
 
   delete: (id: number) =>
     request<{ success: boolean }>(`/meals/${id}`, { method: 'DELETE' }),
+
+  copy: (fromDate: string, toDate: string) =>
+    request<{ copied: number }>('/meals/copy', {
+      method: 'POST',
+      body: JSON.stringify({ fromDate, toDate }),
+    }),
 };
 
 // Recipes

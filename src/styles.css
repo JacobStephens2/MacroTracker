@@ -391,6 +391,36 @@ input, button, select, textarea {
   text-align: right;
 }
 
+.macro-bar-remaining {
+  font-size: 11px;
+  color: var(--primary);
+  text-align: right;
+  margin-top: -4px;
+  margin-bottom: 2px;
+}
+
+.macro-bar-remaining.over {
+  color: var(--danger);
+}
+
+.macro-remaining-summary {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+
+.macro-remaining-summary.over {
+  color: var(--danger);
+}
+
+.dashboard-actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
 /* ===== MEALS ===== */
 .meals-container {
   display: flex;
@@ -426,6 +456,24 @@ input, button, select, textarea {
 .meal-empty {
   padding: 4px 0;
   font-size: 13px;
+}
+
+.meal-macro-chips {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.meal-section.on-track {
+  border-left: 3px solid var(--primary);
+}
+
+.meal-section.partial {
+  border-left: 3px solid var(--fat-color);
+}
+
+.meal-section.low {
+  border-left: 3px solid var(--danger);
 }
 
 .meal-item {

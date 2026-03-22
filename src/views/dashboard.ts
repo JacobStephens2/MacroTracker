@@ -46,6 +46,7 @@ export function dashboardView() {
               </div>
               <span class="macro-bar-value" id="carbs-value">0 / ${state.user?.targetCarbsG || 340}g</span>
             </div>
+            <div class="macro-bar-remaining" id="carbs-remaining"></div>
             <div class="macro-bar-row">
               <span class="macro-bar-label">Protein</span>
               <div class="macro-bar-track">
@@ -53,6 +54,7 @@ export function dashboardView() {
               </div>
               <span class="macro-bar-value" id="protein-value">0 / ${state.user?.targetProteinG || 150}g</span>
             </div>
+            <div class="macro-bar-remaining" id="protein-remaining"></div>
             <div class="macro-bar-row">
               <span class="macro-bar-label">Fat</span>
               <div class="macro-bar-track">
@@ -60,7 +62,14 @@ export function dashboardView() {
               </div>
               <span class="macro-bar-value" id="fat-value">0 / ${state.user?.targetFatG || 70}g</span>
             </div>
+            <div class="macro-bar-remaining" id="fat-remaining"></div>
           </div>
+        </div>
+
+        <div class="macro-remaining-summary" id="cal-remaining"></div>
+
+        <div class="dashboard-actions">
+          <button id="copy-prev-btn" class="btn btn-outline btn-sm">Copy Previous Day</button>
         </div>
 
         <div id="meals-container" class="meals-container">
@@ -103,6 +112,29 @@ export function dashboardView() {
         // Fallback if showPicker not supported
         input.focus();
         input.click();
+      });
+
+      // Copy previous day
+      document.getElementById('copy-prev-btn')!.addEventListener('click', async () => {
+        const btn = document.getElementById('copy-prev-btn') as HTMLButtonElement;
+        const prevDate = new Date(state.selectedDate + 'T12:00:00');
+        prevDate.setDate(prevDate.getDate() - 1);
+        const fromDate = prevDate.toISOString().slice(0, 10);
+
+        if (!confirm(`Copy all meals from ${formatDate(fromDate)} to ${formatDate(state.selectedDate)}?`)) return;
+        btn.disabled = true;
+        btn.textContent = 'Copying...';
+        try {
+          const { copied } = await mealsApi.copy(fromDate, state.selectedDate);
+          btn.textContent = `Copied ${copied} items!`;
+          loadMeals(state.selectedDate);
+        } catch {
+          btn.textContent = 'No meals to copy';
+        }
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = 'Copy Previous Day';
+        }, 2000);
       });
 
       loadMeals(state.selectedDate);
@@ -155,11 +187,20 @@ function updateMacroSummary(mealList: MealLog[]) {
   updateBar('carbs', totals.carbs, targetCarbs);
   updateBar('protein', totals.protein, targetProtein);
   updateBar('fat', totals.fat, targetFat);
+
+  // Calorie remaining
+  const calRemaining = document.getElementById('cal-remaining');
+  if (calRemaining) {
+    const rem = Math.round(targetCal - totals.calories);
+    calRemaining.textContent = rem > 0 ? `${rem} kcal remaining` : `${Math.abs(rem)} kcal over`;
+    calRemaining.className = `macro-remaining-summary ${rem < 0 ? 'over' : ''}`;
+  }
 }
 
 function updateBar(macro: string, current: number, target: number) {
   const bar = document.getElementById(`${macro}-bar`) as HTMLElement | null;
   const value = document.getElementById(`${macro}-value`) as HTMLElement | null;
+  const remaining = document.getElementById(`${macro}-remaining`) as HTMLElement | null;
   if (bar) {
     const pct = Math.min((current / target) * 100, 100);
     bar.style.width = `${pct}%`;
@@ -168,6 +209,11 @@ function updateBar(macro: string, current: number, target: number) {
   }
   if (value) {
     value.textContent = `${Math.round(current)} / ${target}g`;
+  }
+  if (remaining) {
+    const rem = Math.round(target - current);
+    remaining.textContent = rem > 0 ? `${rem}g remaining` : `${Math.abs(rem)}g over`;
+    remaining.className = `macro-bar-remaining ${rem < 0 ? 'over' : ''}`;
   }
 }
 
@@ -193,12 +239,26 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
       { cal: 0, c: 0, p: 0, f: 0 }
     );
 
+    // Per-meal target: daily / 4 (equal split)
+    const user = state.user;
+    const mealTargetCal = Math.round((user?.targetCalories || 2590) / 4);
+    const mealTargetC = Math.round((user?.targetCarbsG || 340) / 4);
+    const mealTargetP = Math.round((user?.targetProteinG || 150) / 4);
+    const mealTargetF = Math.round((user?.targetFatG || 70) / 4);
+    const mealPct = mealTargetCal > 0 ? subtotals.cal / mealTargetCal : 0;
+    const mealStatus = mealPct >= 0.9 ? 'on-track' : mealPct >= 0.5 ? 'partial' : items.length > 0 ? 'low' : '';
+
     html += `
-      <div class="meal-section">
+      <div class="meal-section ${mealStatus}">
         <div class="meal-header">
           <h3>${MEAL_LABELS[type]}</h3>
-          <span class="meal-subtotal">${Math.round(subtotals.cal)} kcal</span>
+          <span class="meal-subtotal">${Math.round(subtotals.cal)} / ${mealTargetCal} kcal</span>
         </div>
+        ${items.length > 0 ? `<div class="meal-macro-chips">
+          <span class="macro-chip chip-carbs">${Math.round(subtotals.c)}/${mealTargetC}c</span>
+          <span class="macro-chip chip-protein">${Math.round(subtotals.p)}/${mealTargetP}p</span>
+          <span class="macro-chip chip-fat">${Math.round(subtotals.f)}/${mealTargetF}f</span>
+        </div>` : ''}
         <div class="meal-items">
     `;
 

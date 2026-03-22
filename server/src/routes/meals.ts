@@ -202,4 +202,41 @@ router.post('/quick', requireAuth, (req: Request, res: Response) => {
   }
 });
 
+// Copy all meals from one date to another
+router.post('/copy', requireAuth, (req: Request, res: Response) => {
+  try {
+    const db = getDb();
+    const { fromDate, toDate } = req.body;
+    if (!fromDate || !toDate) {
+      res.status(400).json({ error: 'fromDate and toDate are required' });
+      return;
+    }
+
+    const sourceMeals = db.prepare(
+      'SELECT meal_type, food_id, recipe_id, servings, calories, carbs_g, protein_g, fat_g, note FROM meal_logs WHERE user_id = ? AND date = ?'
+    ).all(req.user!.userId, fromDate) as any[];
+
+    if (sourceMeals.length === 0) {
+      res.status(404).json({ error: 'No meals found on that date' });
+      return;
+    }
+
+    const insert = db.prepare(
+      'INSERT INTO meal_logs (user_id, date, meal_type, food_id, recipe_id, servings, calories, carbs_g, protein_g, fat_g, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+
+    const tx = db.transaction(() => {
+      for (const m of sourceMeals) {
+        insert.run(req.user!.userId, toDate, m.meal_type, m.food_id, m.recipe_id, m.servings, m.calories, m.carbs_g, m.protein_g, m.fat_g, m.note);
+      }
+    });
+    tx();
+
+    res.json({ copied: sourceMeals.length });
+  } catch (e) {
+    console.error('Copy meals error:', e);
+    res.status(500).json({ error: 'Failed to copy meals' });
+  }
+});
+
 export default router;
