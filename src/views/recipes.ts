@@ -1,6 +1,6 @@
 import { recipes as recipesApi, foods as foodsApi } from '../api';
 import { navigate } from '../router';
-import type { Food, RecipeIngredient } from '../types';
+import type { Food, FoodMeasure, RecipeIngredient } from '../types';
 
 export function recipesView() {
   return {
@@ -127,6 +127,16 @@ export function recipeEditView(params: Record<string, string>) {
           <button type="submit" class="btn btn-primary btn-block">${isNew ? 'Create Recipe' : 'Save Changes'}</button>
           ${!isNew ? '<button type="button" id="delete-recipe" class="btn btn-danger btn-block">Delete Recipe</button>' : ''}
         </form>
+
+        <div id="ing-modal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2 id="ing-modal-name"></h2>
+              <button id="ing-modal-close" class="btn-icon">&times;</button>
+            </div>
+            <div id="ing-modal-body"></div>
+          </div>
+        </div>
       </div>
     `,
     init: () => {
@@ -135,6 +145,120 @@ export function recipeEditView(params: Record<string, string>) {
       let mode: 'ingredients' | 'manual' = 'ingredients';
 
       document.getElementById('back-btn')!.addEventListener('click', () => navigate('#/recipes'));
+
+      // Ingredient modal close
+      document.getElementById('ing-modal-close')!.addEventListener('click', () => {
+        document.getElementById('ing-modal')!.classList.add('hidden');
+      });
+
+      // Show ingredient add modal with unit picker
+      const showIngredientModal = (food: Food) => {
+        const modal = document.getElementById('ing-modal')!;
+        document.getElementById('ing-modal-name')!.textContent = food.name;
+        const body = document.getElementById('ing-modal-body')!;
+
+        let measures: FoodMeasure[] = [];
+        try { measures = food.measures ? JSON.parse(food.measures) : []; } catch { /* */ }
+        const hasMeasures = measures.length > 0;
+
+        const baseCal = food.calories;
+        const baseC = food.carbs_g;
+        const baseP = food.protein_g;
+        const baseF = food.fat_g;
+
+        body.innerHTML = `
+          ${food.brand ? `<p class="food-brand">${food.brand}</p>` : ''}
+          <div class="modal-macros" id="ing-modal-per-unit">
+            <div class="modal-macro"><strong>${baseCal}</strong> kcal</div>
+            <div class="modal-macro"><strong>${baseC}g</strong> carbs</div>
+            <div class="modal-macro"><strong>${baseP}g</strong> protein</div>
+            <div class="modal-macro"><strong>${baseF}g</strong> fat</div>
+          </div>
+          <p class="text-muted" id="ing-modal-per-label">Per ${food.serving_size}${food.serving_unit}</p>
+          ${hasMeasures ? `<div class="form-group">
+            <label for="ing-unit-select">Unit</label>
+            <select id="ing-unit-select">
+              <option value="default">${food.serving_size}${food.serving_unit} (default)</option>
+              ${measures.map((m, i) => `<option value="${i}">${m.label} (${m.gramWeight}g)</option>`).join('')}
+            </select>
+          </div>` : ''}
+          <div class="form-group">
+            <label for="ing-qty">Quantity</label>
+            <div class="servings-control">
+              <button type="button" id="ing-qty-minus" class="btn-icon">-</button>
+              <input type="number" id="ing-qty" value="1" min="0.25" step="0.25" />
+              <button type="button" id="ing-qty-plus" class="btn-icon">+</button>
+            </div>
+          </div>
+          <div class="modal-total" id="ing-modal-total">
+            <span>${baseCal} kcal</span>
+            <span>${baseC}g C</span>
+            <span>${baseP}g P</span>
+            <span>${baseF}g F</span>
+          </div>
+          <button type="button" id="ing-add-btn" class="btn btn-primary btn-block">Add Ingredient</button>
+        `;
+
+        let unitScale = 1;
+        const qtyInput = document.getElementById('ing-qty') as HTMLInputElement;
+        const unitSelect = document.getElementById('ing-unit-select') as HTMLSelectElement | null;
+
+        const updateTotal = () => {
+          const qty = parseFloat(qtyInput.value) || 1;
+          document.getElementById('ing-modal-total')!.innerHTML = `
+            <span>${Math.round(baseCal * unitScale * qty)} kcal</span>
+            <span>${Math.round(baseC * unitScale * qty * 10) / 10}g C</span>
+            <span>${Math.round(baseP * unitScale * qty * 10) / 10}g P</span>
+            <span>${Math.round(baseF * unitScale * qty * 10) / 10}g F</span>
+          `;
+        };
+
+        const updatePerUnit = () => {
+          document.getElementById('ing-modal-per-unit')!.innerHTML = `
+            <div class="modal-macro"><strong>${Math.round(baseCal * unitScale)}</strong> kcal</div>
+            <div class="modal-macro"><strong>${Math.round(baseC * unitScale * 10) / 10}g</strong> carbs</div>
+            <div class="modal-macro"><strong>${Math.round(baseP * unitScale * 10) / 10}g</strong> protein</div>
+            <div class="modal-macro"><strong>${Math.round(baseF * unitScale * 10) / 10}g</strong> fat</div>
+          `;
+        };
+
+        if (unitSelect) {
+          unitSelect.addEventListener('change', () => {
+            if (unitSelect.value === 'default') {
+              unitScale = 1;
+              document.getElementById('ing-modal-per-label')!.textContent = `Per ${food.serving_size}${food.serving_unit}`;
+            } else {
+              const m = measures[parseInt(unitSelect.value)];
+              unitScale = m.gramWeight / food.serving_size;
+              document.getElementById('ing-modal-per-label')!.textContent = `Per ${m.label} (${m.gramWeight}g)`;
+            }
+            updatePerUnit();
+            updateTotal();
+          });
+        }
+
+        qtyInput.addEventListener('input', updateTotal);
+        document.getElementById('ing-qty-minus')!.addEventListener('click', () => {
+          qtyInput.value = String(Math.max(0.25, (parseFloat(qtyInput.value) || 1) - 0.25));
+          updateTotal();
+        });
+        document.getElementById('ing-qty-plus')!.addEventListener('click', () => {
+          qtyInput.value = String((parseFloat(qtyInput.value) || 1) + 0.25);
+          updateTotal();
+        });
+
+        document.getElementById('ing-add-btn')!.addEventListener('click', () => {
+          const qty = parseFloat(qtyInput.value) || 1;
+          const effectiveServings = qty * unitScale;
+          ingredients.push({ foodId: food.id, servings: effectiveServings, food: food as any });
+          renderIngredients(ingredients, mode);
+          modal.classList.add('hidden');
+          document.getElementById('ing-results')!.classList.add('hidden');
+          (document.getElementById('ing-search') as HTMLInputElement).value = '';
+        });
+
+        modal.classList.remove('hidden');
+      };
 
       // Mode toggle
       document.querySelectorAll('[data-mode]').forEach((tab) => {
@@ -214,10 +338,7 @@ export function recipeEditView(params: Record<string, string>) {
                 </div>
               `;
               item.addEventListener('click', () => {
-                ingredients.push({ foodId: food.id, servings: 1, food: food as any });
-                renderIngredients(ingredients, mode);
-                results.classList.add('hidden');
-                searchInput.value = '';
+                showIngredientModal(food);
               });
               results.appendChild(item);
             }
@@ -239,10 +360,7 @@ export function recipeEditView(params: Record<string, string>) {
               item.addEventListener('click', async () => {
                 try {
                   const { food } = await foodsApi.saveExternal(ext);
-                  ingredients.push({ foodId: food.id, servings: 1, food: food as any });
-                  renderIngredients(ingredients, mode);
-                  results.classList.add('hidden');
-                  searchInput.value = '';
+                  showIngredientModal(food);
                 } catch {
                   alert('Failed to save food');
                 }
