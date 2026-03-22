@@ -168,13 +168,23 @@ export const recipes = {
   get: (id: number) =>
     request<{ recipe: Recipe; ingredients: RecipeIngredient[] }>(`/recipes/${id}`),
 
-  create: (data: { name: string; totalServings: number; ingredients: { foodId: number; servings: number }[] }) =>
+  create: (data: {
+    name: string; totalServings: number; servingUnit?: string;
+    ingredients: { foodId: number; servings: number }[];
+    manualCalories?: number | null; manualCarbsG?: number | null;
+    manualProteinG?: number | null; manualFatG?: number | null;
+  }) =>
     request<{ recipe: { id: number } }>('/recipes', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  update: (id: number, data: { name?: string; totalServings?: number; ingredients?: { foodId: number; servings: number }[] }) =>
+  update: (id: number, data: {
+    name?: string; totalServings?: number; servingUnit?: string;
+    ingredients?: { foodId: number; servings: number }[];
+    manualCalories?: number | null; manualCarbsG?: number | null;
+    manualProteinG?: number | null; manualFatG?: number | null;
+  }) =>
     request<{ success: boolean }>(`/recipes/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

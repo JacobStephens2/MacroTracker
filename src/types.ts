@@ -72,6 +72,11 @@ export interface Recipe {
   user_id: number;
   name: string;
   total_servings: number;
+  serving_unit: string;
+  manual_calories: number | null;
+  manual_carbs_g: number | null;
+  manual_protein_g: number | null;
+  manual_fat_g: number | null;
   ingredientCount: number;
   perServing: {
     calories: number;

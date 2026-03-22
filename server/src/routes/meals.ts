@@ -79,26 +79,35 @@ router.post('/', requireAuth, (req: Request, res: Response) => {
     if (recipeId) {
       const recipe = db.prepare('SELECT * FROM recipes WHERE id = ? AND user_id = ?').get(recipeId, req.user!.userId) as any;
       if (recipe) {
-        const ingredients = db.prepare(`
-          SELECT ri.servings, f.calories, f.carbs_g, f.protein_g, f.fat_g
-          FROM recipe_ingredients ri
-          JOIN foods f ON ri.food_id = f.id
-          WHERE ri.recipe_id = ?
-        `).all(recipeId) as any[];
-
-        let totalCal = 0, totalCarbs = 0, totalProtein = 0, totalFat = 0;
-        for (const ing of ingredients) {
-          totalCal += ing.calories * ing.servings;
-          totalCarbs += ing.carbs_g * ing.servings;
-          totalProtein += ing.protein_g * ing.servings;
-          totalFat += ing.fat_g * ing.servings;
-        }
-        // Divide by recipe's total_servings to get per-serving
         const perServing = recipe.total_servings || 1;
-        finalCalories = (totalCal / perServing) * finalServings;
-        finalCarbs = (totalCarbs / perServing) * finalServings;
-        finalProtein = (totalProtein / perServing) * finalServings;
-        finalFat = (totalFat / perServing) * finalServings;
+
+        if (recipe.manual_calories != null) {
+          // Use manual macros
+          finalCalories = (recipe.manual_calories / perServing) * finalServings;
+          finalCarbs = ((recipe.manual_carbs_g || 0) / perServing) * finalServings;
+          finalProtein = ((recipe.manual_protein_g || 0) / perServing) * finalServings;
+          finalFat = ((recipe.manual_fat_g || 0) / perServing) * finalServings;
+        } else {
+          // Calculate from ingredients
+          const ingredients = db.prepare(`
+            SELECT ri.servings, f.calories, f.carbs_g, f.protein_g, f.fat_g
+            FROM recipe_ingredients ri
+            JOIN foods f ON ri.food_id = f.id
+            WHERE ri.recipe_id = ?
+          `).all(recipeId) as any[];
+
+          let totalCal = 0, totalCarbs = 0, totalProtein = 0, totalFat = 0;
+          for (const ing of ingredients) {
+            totalCal += ing.calories * ing.servings;
+            totalCarbs += ing.carbs_g * ing.servings;
+            totalProtein += ing.protein_g * ing.servings;
+            totalFat += ing.fat_g * ing.servings;
+          }
+          finalCalories = (totalCal / perServing) * finalServings;
+          finalCarbs = (totalCarbs / perServing) * finalServings;
+          finalProtein = (totalProtein / perServing) * finalServings;
+          finalFat = (totalFat / perServing) * finalServings;
+        }
       }
     }
 

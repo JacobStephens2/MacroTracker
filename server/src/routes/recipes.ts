@@ -11,6 +11,21 @@ router.get('/', requireAuth, (req: Request, res: Response) => {
 
   // Attach computed nutrition for each recipe
   const withNutrition = recipes.map((r) => {
+    // If manual macros are set, use those (per total recipe)
+    if (r.manual_calories != null) {
+      const perServing = r.total_servings || 1;
+      return {
+        ...r,
+        ingredientCount: 0,
+        perServing: {
+          calories: Math.round(r.manual_calories / perServing),
+          carbsG: Math.round((r.manual_carbs_g || 0) / perServing * 10) / 10,
+          proteinG: Math.round((r.manual_protein_g || 0) / perServing * 10) / 10,
+          fatG: Math.round((r.manual_fat_g || 0) / perServing * 10) / 10,
+        },
+      };
+    }
+
     const ingredients = db.prepare(`
       SELECT ri.servings, f.name, f.calories, f.carbs_g, f.protein_g, f.fat_g, f.serving_unit
       FROM recipe_ingredients ri
@@ -67,14 +82,17 @@ router.get('/:id', requireAuth, (req: Request, res: Response) => {
 router.post('/', requireAuth, (req: Request, res: Response) => {
   try {
     const db = getDb();
-    const { name, totalServings, ingredients } = req.body;
+    const { name, totalServings, servingUnit, ingredients, manualCalories, manualCarbsG, manualProteinG, manualFatG } = req.body;
     if (!name) {
       res.status(400).json({ error: 'Name is required' });
       return;
     }
 
-    const result = db.prepare('INSERT INTO recipes (user_id, name, total_servings) VALUES (?, ?, ?)').run(
-      req.user!.userId, name, totalServings || 1
+    const result = db.prepare(
+      'INSERT INTO recipes (user_id, name, total_servings, serving_unit, manual_calories, manual_carbs_g, manual_protein_g, manual_fat_g) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      req.user!.userId, name, totalServings || 1, servingUnit || 'serving',
+      manualCalories ?? null, manualCarbsG ?? null, manualProteinG ?? null, manualFatG ?? null
     );
     const recipeId = result.lastInsertRowid;
 
@@ -102,10 +120,20 @@ router.put('/:id', requireAuth, (req: Request, res: Response) => {
       return;
     }
 
-    const { name, totalServings, ingredients } = req.body;
-    db.prepare('UPDATE recipes SET name = COALESCE(?, name), total_servings = COALESCE(?, total_servings) WHERE id = ?').run(
-      name, totalServings, req.params.id
-    );
+    const { name, totalServings, servingUnit, ingredients, manualCalories, manualCarbsG, manualProteinG, manualFatG } = req.body;
+    db.prepare(`
+      UPDATE recipes SET
+        name = COALESCE(?, name),
+        total_servings = COALESCE(?, total_servings),
+        serving_unit = COALESCE(?, serving_unit),
+        manual_calories = ?,
+        manual_carbs_g = ?,
+        manual_protein_g = ?,
+        manual_fat_g = ?
+      WHERE id = ?
+    `).run(name, totalServings, servingUnit,
+           manualCalories ?? null, manualCarbsG ?? null, manualProteinG ?? null, manualFatG ?? null,
+           req.params.id);
 
     // Replace ingredients if provided
     if (ingredients && Array.isArray(ingredients)) {

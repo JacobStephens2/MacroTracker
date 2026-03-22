@@ -75,6 +75,11 @@ function initSchema() {
       user_id INTEGER NOT NULL REFERENCES users(id),
       name TEXT NOT NULL,
       total_servings REAL NOT NULL DEFAULT 1,
+      serving_unit TEXT NOT NULL DEFAULT 'serving',
+      manual_calories REAL,
+      manual_carbs_g REAL,
+      manual_protein_g REAL,
+      manual_fat_g REAL,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -117,4 +122,17 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_foods_barcode ON foods(barcode);
     CREATE INDEX IF NOT EXISTS idx_foods_source ON foods(source, source_id);
   `);
+
+  // Migrations for existing databases
+  const cols = db.prepare("PRAGMA table_info(recipes)").all() as any[];
+  const colNames = cols.map((c: any) => c.name);
+  if (!colNames.includes('serving_unit')) {
+    db.exec(`
+      ALTER TABLE recipes ADD COLUMN serving_unit TEXT NOT NULL DEFAULT 'serving';
+      ALTER TABLE recipes ADD COLUMN manual_calories REAL;
+      ALTER TABLE recipes ADD COLUMN manual_carbs_g REAL;
+      ALTER TABLE recipes ADD COLUMN manual_protein_g REAL;
+      ALTER TABLE recipes ADD COLUMN manual_fat_g REAL;
+    `);
+  }
 }

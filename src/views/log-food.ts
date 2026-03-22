@@ -322,7 +322,7 @@ function renderRecipeList(container: HTMLElement, recipeList: Recipe[], mealType
     el.innerHTML = `
       <div class="food-item-info">
         <span class="food-item-name">${recipe.name}</span>
-        <span class="food-serving">${recipe.ingredientCount} ingredients &middot; ${recipe.total_servings} serving${recipe.total_servings !== 1 ? 's' : ''}</span>
+        <span class="food-serving">${recipe.ingredientCount > 0 ? `${recipe.ingredientCount} ingredients` : 'Manual macros'} &middot; ${recipe.total_servings} ${recipe.serving_unit || 'serving'}${recipe.total_servings !== 1 ? 's' : ''}</span>
       </div>
       <div class="food-item-macros">
         <span class="macro-chip chip-calories">${recipe.perServing.calories}</span>
@@ -424,7 +424,7 @@ function showRecipeAddModal(recipe: Recipe, mealType: MealType, date: string) {
       <div class="modal-macro"><strong>${ps.proteinG}g</strong> protein</div>
       <div class="modal-macro"><strong>${ps.fatG}g</strong> fat</div>
     </div>
-    <p class="text-muted">Per serving (${recipe.total_servings} total)</p>
+    <p class="text-muted">Per ${recipe.serving_unit || 'serving'} (${recipe.total_servings} total)</p>
     <div class="form-group">
       <label for="servings-input">Servings</label>
       <div class="servings-control">
