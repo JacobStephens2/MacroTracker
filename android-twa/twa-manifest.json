@@ -1,0 +1,30 @@
+{
+  "packageId": "page.stephens.macros.twa",
+  "host": "macros.stephens.page",
+  "name": "Macro Tracker",
+  "launcherName": "Macros",
+  "display": "standalone",
+  "themeColor": "#10B981",
+  "themeColorDark": "#111827",
+  "navigationColor": "#10B981",
+  "navigationColorDark": "#111827",
+  "navigationDividerColor": "#10B981",
+  "navigationDividerColorDark": "#111827",
+  "backgroundColor": "#F9FAFB",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://macros.stephens.page/app-icons/icon-512.png",
+  "maskableIconUrl": "https://macros.stephens.page/app-icons/icon-512.png",
+  "shortcuts": [],
+  "signingKey": {
+    "path": "./macros-keystore.jks",
+    "alias": "macros"
+  },
+  "appVersionCode": 1,
+  "appVersionName": "1.0.0",
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "orientation": "portrait",
+  "fullScopeUrl": "https://macros.stephens.page/"
+}

@@ -1,0 +1,138 @@
+import groovy.xml.MarkupBuilder
+
+plugins {
+    id 'com.android.application'
+}
+
+def twaManifest = [
+    applicationId: 'page.stephens.macros.twa',
+    hostName: 'macros.stephens.page',
+    launchUrl: '/',
+    name: 'Macro Tracker',
+    launcherName: 'Macros',
+    themeColor: '#10B981',
+    themeColorDark: '#111827',
+    navigationColor: '#10B981',
+    navigationColorDark: '#111827',
+    navigationDividerColor: '#10B981',
+    navigationDividerColorDark: '#111827',
+    backgroundColor: '#F9FAFB',
+    enableNotifications: false,
+    shortcuts: [],
+    splashScreenFadeOutDuration: 300,
+    generatorApp: 'bubblewrap-cli',
+    fallbackType: 'customtabs',
+    enableSiteSettingsShortcut: 'true',
+    orientation: 'portrait',
+]
+
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+android {
+    signingConfigs {
+        release {
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+        }
+    }
+    compileSdkVersion 36
+    namespace "page.stephens.macros.twa"
+    defaultConfig {
+        applicationId "page.stephens.macros.twa"
+        minSdkVersion 21
+        targetSdkVersion 35
+        versionCode 1
+        versionName "1.0.0"
+
+        resValue "string", "appName", twaManifest.name
+        resValue "string", "launcherName", twaManifest.launcherName
+
+        def launchUrl = "https://" + twaManifest.hostName + twaManifest.launchUrl
+        resValue "string", "launchUrl", launchUrl
+
+        resValue "string", "webManifestUrl", 'https://macros.stephens.page/manifest.webmanifest'
+        resValue "string", "fullScopeUrl", 'https://macros.stephens.page/'
+
+        resValue "string", "hostName", twaManifest.hostName
+
+        resValue "color", "colorPrimary", twaManifest.themeColor
+        resValue "color", "colorPrimaryDark", twaManifest.themeColorDark
+        resValue "color", "navigationColor", twaManifest.navigationColor
+        resValue "color", "navigationColorDark", twaManifest.navigationColorDark
+        resValue "color", "navigationDividerColor", twaManifest.navigationDividerColor
+        resValue "color", "navigationDividerColorDark", twaManifest.navigationDividerColorDark
+        resValue "color", "backgroundColor", twaManifest.backgroundColor
+
+        resValue "string", "providerAuthority", twaManifest.applicationId + '.fileprovider'
+        resValue "bool", "enableNotification", twaManifest.enableNotifications.toString()
+
+        twaManifest.shortcuts.eachWithIndex { shortcut, index ->
+            resValue "string", "shortcut_name_$index", "$shortcut.name"
+            resValue "string", "shortcut_short_name_$index", "$shortcut.short_name"
+        }
+
+        resValue "integer", "splashScreenFadeOutDuration", twaManifest.splashScreenFadeOutDuration.toString()
+        resValue "string", "generatorApp", twaManifest.generatorApp
+        resValue "string", "fallbackType", twaManifest.fallbackType
+        resValue "bool", "enableSiteSettingsShortcut", twaManifest.enableSiteSettingsShortcut
+        resValue "string", "orientation", twaManifest.orientation
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    lintOptions {
+        checkReleaseBuilds false
+    }
+}
+
+task generateShorcutsFile {
+    assert twaManifest.shortcuts.size() < 5, "You can have at most 4 shortcuts."
+    twaManifest.shortcuts.eachWithIndex { s, i ->
+        assert s.name != null, 'Missing `name` in shortcut #' + i
+        assert s.short_name != null, 'Missing `short_name` in shortcut #' + i
+        assert s.url != null, 'Missing `icon` in shortcut #' + i
+        assert s.icon != null, 'Missing `url` in shortcut #' + i
+    }
+
+    def shortcutsFile = new File("$projectDir/src/main/res/xml", "shortcuts.xml")
+    def xmlWriter = new StringWriter()
+    def xmlMarkup = new MarkupBuilder(new IndentPrinter(xmlWriter, "    ", true))
+
+    xmlMarkup
+        .'shortcuts'('xmlns:android': 'http://schemas.android.com/apk/res/android') {
+            twaManifest.shortcuts.eachWithIndex { s, i ->
+                'shortcut'(
+                        'android:shortcutId': 'shortcut' + i,
+                        'android:enabled': 'true',
+                        'android:icon': '@drawable/' + s.icon,
+                        'android:shortcutShortLabel': '@string/shortcut_short_name_' + i,
+                        'android:shortcutLongLabel': '@string/shortcut_name_' + i) {
+                    'intent'(
+                            'android:action': 'android.intent.action.MAIN',
+                            'android:targetPackage': twaManifest.applicationId,
+                            'android:targetClass': twaManifest.applicationId + '.LauncherActivity',
+                            'android:data': s.url)
+                    'categories'('android:name': 'android.intent.category.LAUNCHER')
+                }
+            }
+        }
+    shortcutsFile.text = xmlWriter.toString() + '\n'
+}
+
+preBuild.dependsOn(generateShorcutsFile)
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'
+}
