@@ -76,10 +76,16 @@ export function logFoodView() {
       // Search input
       searchInput.addEventListener('input', () => {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
+        if (searchInput.value.trim().length >= 2) {
+          searchInput.classList.add('searching');
+        } else {
+          searchInput.classList.remove('searching');
+        }
+        searchTimeout = setTimeout(async () => {
           if (searchInput.value.trim().length >= 2) {
-            searchFoods(searchInput.value.trim(), mealType, date);
+            await searchFoods(searchInput.value.trim(), mealType, date);
           }
+          searchInput.classList.remove('searching');
         }, 400);
       });
 

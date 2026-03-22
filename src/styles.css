@@ -635,6 +635,20 @@ input, button, select, textarea {
 }
 .search-bar input:focus { outline: none; border-color: var(--primary); }
 
+.search-bar input.searching {
+  border-color: var(--primary);
+  background-image: linear-gradient(90deg, var(--primary) 0%, transparent 50%, var(--primary) 100%);
+  background-size: 200% 2px;
+  background-repeat: no-repeat;
+  background-position: bottom;
+  animation: searchPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes searchPulse {
+  0% { background-position: bottom right; }
+  100% { background-position: bottom left; }
+}
+
 .btn-scan { flex-shrink: 0; }
 
 /* ===== SCANNER ===== */
