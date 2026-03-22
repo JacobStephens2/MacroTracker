@@ -140,7 +140,7 @@ export function recipeEditView(params: Record<string, string>) {
       </div>
     `,
     init: () => {
-      const ingredients: { foodId: number; servings: number; food: Food | RecipeIngredient }[] = [];
+      const ingredients: { foodId: number; servings: number; food: Food | RecipeIngredient; unitLabel?: string }[] = [];
       let searchTimeout: ReturnType<typeof setTimeout>;
       let mode: 'ingredients' | 'manual' = 'ingredients';
 
@@ -250,7 +250,15 @@ export function recipeEditView(params: Record<string, string>) {
         document.getElementById('ing-add-btn')!.addEventListener('click', () => {
           const qty = parseFloat(qtyInput.value) || 1;
           const effectiveServings = qty * unitScale;
-          ingredients.push({ foodId: food.id, servings: effectiveServings, food: food as any });
+          const selectedUnit = unitSelect?.value;
+          let unitLabel: string | undefined;
+          if (selectedUnit && selectedUnit !== 'default') {
+            const m = measures[parseInt(selectedUnit)];
+            unitLabel = qty !== 1 ? `${qty}x ${m.label}` : m.label;
+          } else {
+            unitLabel = qty !== 1 ? `${qty}x ${food.serving_size}${food.serving_unit}` : `${food.serving_size}${food.serving_unit}`;
+          }
+          ingredients.push({ foodId: food.id, servings: effectiveServings, food: food as any, unitLabel });
           renderIngredients(ingredients, mode);
           modal.classList.add('hidden');
           document.getElementById('ing-results')!.classList.add('hidden');
@@ -485,7 +493,7 @@ function updateTotals(
 }
 
 function renderIngredients(
-  ingredients: { foodId: number; servings: number; food: Food | RecipeIngredient }[],
+  ingredients: { foodId: number; servings: number; food: Food | RecipeIngredient; unitLabel?: string }[],
   mode: 'ingredients' | 'manual'
 ) {
   const container = document.getElementById('ingredients-list')!;
@@ -494,12 +502,15 @@ function renderIngredients(
   ingredients.forEach((ing, idx) => {
     const f = ing.food;
     const cal = (f.calories || 0) * ing.servings;
+    const unit = ing.unitLabel || `${Math.round(ing.servings * 100) / 100}x`;
 
     const el = document.createElement('div');
     el.className = 'ingredient-row';
     el.innerHTML = `
-      <span class="ingredient-name">${f.name}</span>
-      <input type="number" class="ing-servings" value="${ing.servings}" min="0.25" step="0.25" data-idx="${idx}" />
+      <div class="ingredient-info">
+        <span class="ingredient-name">${f.name}</span>
+        <span class="ingredient-unit">${unit}</span>
+      </div>
       <span class="ingredient-cal">${Math.round(cal)} kcal</span>
       <button type="button" class="btn-icon btn-remove-ing" data-idx="${idx}">&times;</button>
     `;
@@ -507,15 +518,6 @@ function renderIngredients(
   });
 
   updateTotals(ingredients, mode);
-
-  // Servings change handlers
-  container.querySelectorAll('.ing-servings').forEach((input) => {
-    input.addEventListener('change', () => {
-      const idx = parseInt((input as HTMLElement).dataset.idx || '0');
-      ingredients[idx].servings = parseFloat((input as HTMLInputElement).value) || 1;
-      renderIngredients(ingredients, mode);
-    });
-  });
 
   // Remove handlers
   container.querySelectorAll('.btn-remove-ing').forEach((btn) => {

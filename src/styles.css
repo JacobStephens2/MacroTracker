@@ -792,21 +792,24 @@ input.searching,
   border-bottom: 1px solid var(--border);
 }
 
-.ingredient-name {
+.ingredient-info {
   flex: 1;
+  min-width: 0;
+}
+
+.ingredient-name {
   font-size: 14px;
   font-weight: 500;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ing-servings {
-  width: 60px;
-  text-align: center;
-  padding: 6px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
+.ingredient-unit {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: block;
 }
 
 .ingredient-cal {
