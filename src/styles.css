@@ -951,3 +951,67 @@ input, button, select, textarea {
     align-items: center;
   }
 }
+
+/* ===== DARK MODE ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #34D399;
+    --primary-dark: #10B981;
+    --bg: #111827;
+    --surface: #1F2937;
+    --text: #F9FAFB;
+    --text-secondary: #9CA3AF;
+    --border: #374151;
+    --danger: #F87171;
+
+    --cal-color: #34D399;
+    --carbs-color: #60A5FA;
+    --protein-color: #F87171;
+    --fat-color: #FBBF24;
+  }
+
+  body {
+    color-scheme: dark;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    background: #111827;
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  .food-item:hover {
+    background: rgba(255,255,255,0.04);
+  }
+
+  .modal {
+    background: rgba(0,0,0,0.6);
+  }
+
+  .chip-calories { background: rgba(52,211,153,0.15); color: #34D399; }
+  .chip-carbs { background: rgba(96,165,250,0.15); color: #60A5FA; }
+  .chip-protein { background: rgba(248,113,113,0.15); color: #F87171; }
+  .chip-fat { background: rgba(251,191,36,0.15); color: #FBBF24; }
+
+  .btn-outline {
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .date-label {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  .ingredient-search .food-list {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+
+  meta[name="theme-color"] {
+    content: "#111827";
+  }
+}
