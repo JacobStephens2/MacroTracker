@@ -471,12 +471,31 @@ async function loadExistingRecipe(
       updateTotals(ingredients, 'manual');
     } else {
       for (const ing of ings) {
+        let unitLabel = ing.unit_label ?? undefined;
+        let qty = ing.qty ?? undefined;
+
+        // For old data without unit_label, try to match servings to a known measure
+        if (!unitLabel && ing.measures) {
+          try {
+            const measures: { label: string; gramWeight: number }[] = JSON.parse(ing.measures);
+            const effectiveGrams = ing.servings * (ing.serving_size || 100);
+            for (const m of measures) {
+              const ratio = effectiveGrams / m.gramWeight;
+              if (Math.abs(ratio - Math.round(ratio)) < 0.01 && Math.round(ratio) > 0) {
+                qty = Math.round(ratio);
+                unitLabel = qty !== 1 ? `${qty}x ${m.label}` : m.label;
+                break;
+              }
+            }
+          } catch { /* ignore */ }
+        }
+
         ingredients.push({
           foodId: ing.food_id,
           servings: ing.servings,
-          qty: ing.qty ?? undefined,
+          qty,
           food: ing,
-          unitLabel: ing.unit_label ?? undefined,
+          unitLabel,
         });
       }
       renderIngredients(ingredients, 'ingredients', onEdit);
