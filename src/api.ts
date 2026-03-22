@@ -176,7 +176,7 @@ export const recipes = {
 
   create: (data: {
     name: string; totalServings: number; servingUnit?: string;
-    ingredients: { foodId: number; servings: number }[];
+    ingredients: { foodId: number; servings: number; qty?: number; unitLabel?: string }[];
     manualCalories?: number | null; manualCarbsG?: number | null;
     manualProteinG?: number | null; manualFatG?: number | null;
   }) =>
@@ -187,7 +187,7 @@ export const recipes = {
 
   update: (id: number, data: {
     name?: string; totalServings?: number; servingUnit?: string;
-    ingredients?: { foodId: number; servings: number }[];
+    ingredients?: { foodId: number; servings: number; qty?: number; unitLabel?: string }[];
     manualCalories?: number | null; manualCarbsG?: number | null;
     manualProteinG?: number | null; manualFatG?: number | null;
   }) =>

@@ -97,6 +97,8 @@ export interface RecipeIngredient {
   id: number;
   food_id: number;
   servings: number;
+  qty: number | null;
+  unit_label: string | null;
   name: string;
   brand: string | null;
   serving_size: number;
@@ -105,6 +107,7 @@ export interface RecipeIngredient {
   carbs_g: number;
   protein_g: number;
   fat_g: number;
+  measures: string | null;
 }
 
 export interface WeightLog {

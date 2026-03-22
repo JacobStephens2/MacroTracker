@@ -140,7 +140,7 @@ export function recipeEditView(params: Record<string, string>) {
       </div>
     `,
     init: () => {
-      const ingredients: { foodId: number; servings: number; food: Food | RecipeIngredient; unitLabel?: string }[] = [];
+      const ingredients: { foodId: number; servings: number; qty?: number; food: Food | RecipeIngredient; unitLabel?: string }[] = [];
       let searchTimeout: ReturnType<typeof setTimeout>;
       let mode: 'ingredients' | 'manual' = 'ingredients';
 
@@ -187,7 +187,7 @@ export function recipeEditView(params: Record<string, string>) {
             <label for="ing-qty">Quantity</label>
             <div class="servings-control">
               <button type="button" id="ing-qty-minus" class="btn-icon">-</button>
-              <input type="number" id="ing-qty" value="${isEdit ? Math.round((ingredients[editIndex!].servings) * 100) / 100 : 1}" min="0.25" step="0.25" />
+              <input type="number" id="ing-qty" value="${isEdit ? (ingredients[editIndex!].qty ?? Math.round(ingredients[editIndex!].servings * 100) / 100) : 1}" min="0.25" step="0.25" />
               <button type="button" id="ing-qty-plus" class="btn-icon">+</button>
             </div>
           </div>
@@ -199,9 +199,10 @@ export function recipeEditView(params: Record<string, string>) {
         `;
 
         let unitScale = 1;
-        // When editing, try to recover the unit scale from stored servings
-        if (isEdit && !hasMeasures) {
-          unitScale = ingredients[editIndex!].servings / (parseFloat((document.getElementById('ing-qty') as HTMLInputElement).value) || 1);
+        // When editing, recover the unit scale from stored servings and qty
+        if (isEdit) {
+          const editQty = ingredients[editIndex!].qty ?? ingredients[editIndex!].servings;
+          unitScale = ingredients[editIndex!].servings / editQty;
         }
         const qtyInput = document.getElementById('ing-qty') as HTMLInputElement;
         const unitSelect = document.getElementById('ing-unit-select') as HTMLSelectElement | null;
@@ -265,9 +266,9 @@ export function recipeEditView(params: Record<string, string>) {
             unitLabel = qty !== 1 ? `${qty}x ${food.serving_size}${food.serving_unit}` : `${food.serving_size}${food.serving_unit}`;
           }
           if (isEdit) {
-            ingredients[editIndex!] = { foodId: food.id, servings: effectiveServings, food: food as any, unitLabel };
+            ingredients[editIndex!] = { foodId: food.id, servings: effectiveServings, qty, food: food as any, unitLabel };
           } else {
-            ingredients.push({ foodId: food.id, servings: effectiveServings, food: food as any, unitLabel });
+            ingredients.push({ foodId: food.id, servings: effectiveServings, qty, food: food as any, unitLabel });
           }
           renderIngredients(ingredients, mode, onEditIngredient);
           modal.classList.add('hidden');
@@ -419,7 +420,7 @@ export function recipeEditView(params: Record<string, string>) {
         btn.disabled = true;
 
         try {
-          const ingData = ingredients.map((i) => ({ foodId: i.foodId, servings: i.servings }));
+          const ingData = ingredients.map((i) => ({ foodId: i.foodId, servings: i.servings, qty: i.qty, unitLabel: i.unitLabel }));
           const manualCalories = mode === 'manual' ? (parseFloat(manualCalInput.value) || null) : null;
           const manualCarbsG = mode === 'manual' ? (parseFloat((document.getElementById('manual-carbs') as HTMLInputElement).value) || null) : null;
           const manualProteinG = mode === 'manual' ? (parseFloat((document.getElementById('manual-protein') as HTMLInputElement).value) || null) : null;
@@ -450,7 +451,7 @@ export function recipeEditView(params: Record<string, string>) {
 
 async function loadExistingRecipe(
   id: number,
-  ingredients: { foodId: number; servings: number; food: Food | RecipeIngredient; unitLabel?: string }[],
+  ingredients: { foodId: number; servings: number; qty?: number; food: Food | RecipeIngredient; unitLabel?: string }[],
   onMode: (mode: 'ingredients' | 'manual') => void,
   onEdit?: (idx: number) => void
 ) {
@@ -470,7 +471,13 @@ async function loadExistingRecipe(
       updateTotals(ingredients, 'manual');
     } else {
       for (const ing of ings) {
-        ingredients.push({ foodId: ing.food_id, servings: ing.servings, food: ing });
+        ingredients.push({
+          foodId: ing.food_id,
+          servings: ing.servings,
+          qty: ing.qty ?? undefined,
+          food: ing,
+          unitLabel: ing.unit_label ?? undefined,
+        });
       }
       renderIngredients(ingredients, 'ingredients', onEdit);
     }
@@ -518,7 +525,7 @@ function updateTotals(
 }
 
 function renderIngredients(
-  ingredients: { foodId: number; servings: number; food: Food | RecipeIngredient; unitLabel?: string }[],
+  ingredients: { foodId: number; servings: number; qty?: number; food: Food | RecipeIngredient; unitLabel?: string }[],
   mode: 'ingredients' | 'manual',
   onEdit?: (idx: number) => void
 ) {

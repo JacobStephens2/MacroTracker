@@ -88,7 +88,9 @@ function initSchema() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
       food_id INTEGER NOT NULL REFERENCES foods(id),
-      servings REAL NOT NULL DEFAULT 1
+      servings REAL NOT NULL DEFAULT 1,
+      qty REAL,
+      unit_label TEXT
     );
 
     CREATE TABLE IF NOT EXISTS meal_logs (
@@ -129,6 +131,15 @@ function initSchema() {
   const foodColNames = foodCols.map((c: any) => c.name);
   if (!foodColNames.includes('measures')) {
     db.exec("ALTER TABLE foods ADD COLUMN measures TEXT");
+  }
+
+  const riCols = db.prepare("PRAGMA table_info(recipe_ingredients)").all() as any[];
+  const riColNames = riCols.map((c: any) => c.name);
+  if (!riColNames.includes('unit_label')) {
+    db.exec(`
+      ALTER TABLE recipe_ingredients ADD COLUMN qty REAL;
+      ALTER TABLE recipe_ingredients ADD COLUMN unit_label TEXT;
+    `);
   }
 
   const cols = db.prepare("PRAGMA table_info(recipes)").all() as any[];

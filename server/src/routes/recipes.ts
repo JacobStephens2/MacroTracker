@@ -67,9 +67,9 @@ router.get('/:id', requireAuth, (req: Request, res: Response) => {
   }
 
   const ingredients = db.prepare(`
-    SELECT ri.id, ri.servings, ri.food_id,
+    SELECT ri.id, ri.servings, ri.food_id, ri.qty, ri.unit_label,
            f.name, f.brand, f.serving_size, f.serving_unit,
-           f.calories, f.carbs_g, f.protein_g, f.fat_g
+           f.calories, f.carbs_g, f.protein_g, f.fat_g, f.measures
     FROM recipe_ingredients ri
     JOIN foods f ON ri.food_id = f.id
     WHERE ri.recipe_id = ?
@@ -97,9 +97,9 @@ router.post('/', requireAuth, (req: Request, res: Response) => {
     const recipeId = result.lastInsertRowid;
 
     if (ingredients && Array.isArray(ingredients)) {
-      const insert = db.prepare('INSERT INTO recipe_ingredients (recipe_id, food_id, servings) VALUES (?, ?, ?)');
+      const insert = db.prepare('INSERT INTO recipe_ingredients (recipe_id, food_id, servings, qty, unit_label) VALUES (?, ?, ?, ?, ?)');
       for (const ing of ingredients) {
-        insert.run(recipeId, ing.foodId, ing.servings || 1);
+        insert.run(recipeId, ing.foodId, ing.servings || 1, ing.qty ?? null, ing.unitLabel ?? null);
       }
     }
 
@@ -138,9 +138,9 @@ router.put('/:id', requireAuth, (req: Request, res: Response) => {
     // Replace ingredients if provided
     if (ingredients && Array.isArray(ingredients)) {
       db.prepare('DELETE FROM recipe_ingredients WHERE recipe_id = ?').run(req.params.id);
-      const insert = db.prepare('INSERT INTO recipe_ingredients (recipe_id, food_id, servings) VALUES (?, ?, ?)');
+      const insert = db.prepare('INSERT INTO recipe_ingredients (recipe_id, food_id, servings, qty, unit_label) VALUES (?, ?, ?, ?, ?)');
       for (const ing of ingredients) {
-        insert.run(req.params.id, ing.foodId, ing.servings || 1);
+        insert.run(req.params.id, ing.foodId, ing.servings || 1, ing.qty ?? null, ing.unitLabel ?? null);
       }
     }
 
