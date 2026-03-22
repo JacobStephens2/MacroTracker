@@ -9,6 +9,7 @@ import { logFoodView } from './views/log-food';
 import { recipesView, recipeEditView } from './views/recipes';
 import { weightView } from './views/weight';
 import { settingsView } from './views/settings';
+import { isGuestMode, getGuestUser } from './local-db';
 
 // Auth guard wrapper
 function requireUser(viewFn: (params: Record<string, string>) => { html: string; init: () => void }) {
@@ -48,11 +49,16 @@ async function init() {
   const app = document.getElementById('app')!;
   app.innerHTML = '<div class="loading-screen"><div class="logo-icon">M</div><p>Loading...</p></div>';
 
-  try {
-    const { user } = await auth.me();
+  if (isGuestMode()) {
+    const user = getGuestUser();
     setState({ user, loading: false });
-  } catch {
-    setState({ user: null, loading: false });
+  } else {
+    try {
+      const { user } = await auth.me();
+      setState({ user, loading: false });
+    } catch {
+      setState({ user: null, loading: false });
+    }
   }
 
   startRouter();

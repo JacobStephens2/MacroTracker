@@ -1,4 +1,13 @@
 import type { User, Food, ExternalFood, MealLog, Recipe, RecipeIngredient, WeightLog } from './types';
+import {
+  isGuestMode,
+  clearGuestData,
+  localAuth,
+  localFoods,
+  localMeals,
+  localRecipes,
+  localWeight,
+} from './local-db';
 
 const BASE = '/api';
 
@@ -22,27 +31,49 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return data;
 }
 
+// Like request() but doesn't redirect to login on 401 (for endpoints that support optional auth)
+async function requestNoAuthRedirect<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+    credentials: 'same-origin',
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
 // Auth
 export const auth = {
-  register: (email: string, password: string, firstName: string) =>
-    request<{ user: User }>('/auth/register', {
+  register: (email: string, password: string, firstName: string) => {
+    clearGuestData();
+    return request<{ user: User }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, firstName }),
-    }),
+    });
+  },
 
-  login: (email: string, password: string) =>
-    request<{ user: User }>('/auth/login', {
+  login: (email: string, password: string) => {
+    clearGuestData();
+    return request<{ user: User }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
-    }),
+    });
+  },
 
-  me: () => request<{ user: User }>('/auth/me'),
+  me: () => (isGuestMode() ? localAuth.me() : request<{ user: User }>('/auth/me')),
 
   updateProfile: (data: Partial<User>) =>
-    request<{ user: User }>('/auth/me', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+    isGuestMode()
+      ? localAuth.updateProfile(data)
+      : request<{ user: User }>('/auth/me', {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        }),
 
   changePassword: (currentPassword: string, newPassword: string) =>
     request<{ success: boolean }>('/auth/change-password', {
@@ -50,7 +81,7 @@ export const auth = {
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
-  logout: () => request<{ success: boolean }>('/auth/logout', { method: 'POST' }),
+  logout: () => (isGuestMode() ? localAuth.logout() : request<{ success: boolean }>('/auth/logout', { method: 'POST' })),
 
   verifyEmail: (token: string) =>
     request<{ success: boolean }>('/auth/verify-email', {
@@ -72,53 +103,103 @@ export const auth = {
 };
 
 // Foods
+// Search, barcode, and save-external always hit the server (endpoints allow unauthenticated access).
+// Guest mode uses local-db for user-specific operations (recent, custom, create, delete).
 export const foods = {
-  search: (q: string) =>
-    request<{ foods: Food[]; external: ExternalFood[] }>(`/foods/search?q=${encodeURIComponent(q)}`),
+  search: (q: string) => {
+    if (!isGuestMode()) {
+      return request<{ foods: Food[]; external: ExternalFood[] }>(`/foods/search?q=${encodeURIComponent(q)}`);
+    }
+    // Merge local custom foods with server external results
+    return (async () => {
+      const [local, remote] = await Promise.allSettled([
+        localFoods.search(q),
+        requestNoAuthRedirect<{ foods: Food[]; external: ExternalFood[] }>(`/foods/search?q=${encodeURIComponent(q)}`),
+      ]);
+      const localResult = local.status === 'fulfilled' ? local.value : { foods: [], external: [] };
+      const remoteResult = remote.status === 'fulfilled' ? remote.value : { foods: [], external: [] };
+      return {
+        foods: localResult.foods,
+        external: remoteResult.external,
+      };
+    })();
+  },
 
-  barcode: (code: string) => request<{ food: Food }>(`/foods/barcode/${code}`),
+  barcode: async (code: string) => {
+    if (isGuestMode()) {
+      const result = await requestNoAuthRedirect<{ food: Food }>(`/foods/barcode/${code}`);
+      // Save to local-db so it can be referenced when logging meals
+      const saved = await localFoods.saveExternalToLocal({
+        name: result.food.name,
+        brand: result.food.brand,
+        barcode: result.food.barcode,
+        servingSize: result.food.serving_size,
+        servingUnit: result.food.serving_unit,
+        calories: result.food.calories,
+        carbsG: result.food.carbs_g,
+        proteinG: result.food.protein_g,
+        fatG: result.food.fat_g,
+        fiberG: result.food.fiber_g,
+        sugarG: result.food.sugar_g,
+        source: result.food.source,
+        sourceId: result.food.source_id,
+        measures: result.food.measures ? JSON.parse(result.food.measures) : undefined,
+      });
+      return saved;
+    }
+    return request<{ food: Food }>(`/foods/barcode/${code}`);
+  },
 
-  recent: () => request<{ foods: Food[] }>('/foods/recent'),
+  recent: () => (isGuestMode() ? localFoods.recent() : request<{ foods: Food[] }>('/foods/recent')),
 
-  custom: () => request<{ foods: Food[] }>('/foods/custom'),
+  custom: () => (isGuestMode() ? localFoods.custom() : request<{ foods: Food[] }>('/foods/custom')),
 
   create: (data: Partial<Food>) =>
-    request<{ food: Food }>('/foods', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: data.name,
-        brand: data.brand,
-        barcode: data.barcode,
-        servingSize: data.serving_size,
-        servingUnit: data.serving_unit,
-        calories: data.calories,
-        carbsG: data.carbs_g,
-        proteinG: data.protein_g,
-        fatG: data.fat_g,
-        fiberG: data.fiber_g,
-        sugarG: data.sugar_g,
-      }),
-    }),
+    isGuestMode()
+      ? localFoods.create(data)
+      : request<{ food: Food }>('/foods', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: data.name,
+            brand: data.brand,
+            barcode: data.barcode,
+            servingSize: data.serving_size,
+            servingUnit: data.serving_unit,
+            calories: data.calories,
+            carbsG: data.carbs_g,
+            proteinG: data.protein_g,
+            fatG: data.fat_g,
+            fiberG: data.fiber_g,
+            sugarG: data.sugar_g,
+          }),
+        }),
 
-  saveExternal: (data: ExternalFood) =>
-    request<{ food: Food }>('/foods/save-external', {
+  saveExternal: (data: ExternalFood) => {
+    if (isGuestMode()) {
+      // Save to local-db instead of server
+      return localFoods.saveExternalToLocal(data);
+    }
+    return request<{ food: Food }>('/foods/save-external', {
       method: 'POST',
       body: JSON.stringify(data),
-    }),
+    });
+  },
 
   delete: (id: number) =>
-    request<{ success: boolean }>(`/foods/${id}`, { method: 'DELETE' }),
+    isGuestMode() ? localFoods.delete(id) : request<{ success: boolean }>(`/foods/${id}`, { method: 'DELETE' }),
 };
 
 // Meals
 export const meals = {
   getByDate: (date: string) =>
-    request<{ meals: MealLog[] }>(`/meals/${date}`),
+    isGuestMode() ? localMeals.getByDate(date) : request<{ meals: MealLog[] }>(`/meals/${date}`),
 
   getTotals: (startDate: string, endDate: string) =>
-    request<{ totals: { date: string; total_calories: number; total_carbs: number; total_protein: number; total_fat: number }[] }>(
-      `/meals/totals/${startDate}/${endDate}`
-    ),
+    isGuestMode()
+      ? localMeals.getTotals(startDate, endDate)
+      : request<{
+          totals: { date: string; total_calories: number; total_carbs: number; total_protein: number; total_fat: number }[];
+        }>(`/meals/totals/${startDate}/${endDate}`),
 
   log: (data: {
     date: string;
@@ -132,10 +213,12 @@ export const meals = {
     fatG?: number;
     note?: string;
   }) =>
-    request<{ meal: MealLog }>('/meals', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    isGuestMode()
+      ? localMeals.log(data)
+      : request<{ meal: MealLog }>('/meals', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }),
 
   quickLog: (data: {
     date: string;
@@ -146,71 +229,98 @@ export const meals = {
     proteinG?: number;
     fatG?: number;
   }) =>
-    request<{ meal: MealLog }>('/meals/quick', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    isGuestMode()
+      ? localMeals.quickLog(data)
+      : request<{ meal: MealLog }>('/meals/quick', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }),
 
   update: (id: number, data: { servings?: number; mealType?: string; calories?: number; carbsG?: number; proteinG?: number; fatG?: number }) =>
-    request<{ meal: MealLog }>(`/meals/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+    isGuestMode()
+      ? localMeals.update(id, data)
+      : request<{ meal: MealLog }>(`/meals/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        }),
 
   delete: (id: number) =>
-    request<{ success: boolean }>(`/meals/${id}`, { method: 'DELETE' }),
+    isGuestMode() ? localMeals.delete(id) : request<{ success: boolean }>(`/meals/${id}`, { method: 'DELETE' }),
 
   copy: (fromDate: string, toDate: string) =>
-    request<{ copied: number }>('/meals/copy', {
-      method: 'POST',
-      body: JSON.stringify({ fromDate, toDate }),
-    }),
+    isGuestMode()
+      ? localMeals.copy(fromDate, toDate)
+      : request<{ copied: number }>('/meals/copy', {
+          method: 'POST',
+          body: JSON.stringify({ fromDate, toDate }),
+        }),
 };
 
 // Recipes
 export const recipes = {
-  list: () => request<{ recipes: Recipe[] }>('/recipes'),
+  list: () => (isGuestMode() ? localRecipes.list() : request<{ recipes: Recipe[] }>('/recipes')),
 
   get: (id: number) =>
-    request<{ recipe: Recipe; ingredients: RecipeIngredient[] }>(`/recipes/${id}`),
+    isGuestMode()
+      ? localRecipes.get(id)
+      : request<{ recipe: Recipe; ingredients: RecipeIngredient[] }>(`/recipes/${id}`),
 
   create: (data: {
-    name: string; totalServings: number; servingUnit?: string;
+    name: string;
+    totalServings: number;
+    servingUnit?: string;
     ingredients: { foodId: number; servings: number; qty?: number; unitLabel?: string }[];
-    manualCalories?: number | null; manualCarbsG?: number | null;
-    manualProteinG?: number | null; manualFatG?: number | null;
+    manualCalories?: number | null;
+    manualCarbsG?: number | null;
+    manualProteinG?: number | null;
+    manualFatG?: number | null;
   }) =>
-    request<{ recipe: { id: number } }>('/recipes', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    isGuestMode()
+      ? localRecipes.create(data)
+      : request<{ recipe: { id: number } }>('/recipes', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }),
 
-  update: (id: number, data: {
-    name?: string; totalServings?: number; servingUnit?: string;
-    ingredients?: { foodId: number; servings: number; qty?: number; unitLabel?: string }[];
-    manualCalories?: number | null; manualCarbsG?: number | null;
-    manualProteinG?: number | null; manualFatG?: number | null;
-  }) =>
-    request<{ success: boolean }>(`/recipes/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+  update: (
+    id: number,
+    data: {
+      name?: string;
+      totalServings?: number;
+      servingUnit?: string;
+      ingredients?: { foodId: number; servings: number; qty?: number; unitLabel?: string }[];
+      manualCalories?: number | null;
+      manualCarbsG?: number | null;
+      manualProteinG?: number | null;
+      manualFatG?: number | null;
+    }
+  ) =>
+    isGuestMode()
+      ? localRecipes.update(id, data)
+      : request<{ success: boolean }>(`/recipes/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        }),
 
   delete: (id: number) =>
-    request<{ success: boolean }>(`/recipes/${id}`, { method: 'DELETE' }),
+    isGuestMode() ? localRecipes.delete(id) : request<{ success: boolean }>(`/recipes/${id}`, { method: 'DELETE' }),
 };
 
 // Weight
 export const weight = {
   list: (limit?: number) =>
-    request<{ logs: WeightLog[] }>(`/weight${limit ? `?limit=${limit}` : ''}`),
+    isGuestMode()
+      ? localWeight.list(limit)
+      : request<{ logs: WeightLog[] }>(`/weight${limit ? `?limit=${limit}` : ''}`),
 
   log: (date: string, weightLbs: number, notes?: string) =>
-    request<{ log: WeightLog }>('/weight', {
-      method: 'POST',
-      body: JSON.stringify({ date, weightLbs, notes }),
-    }),
+    isGuestMode()
+      ? localWeight.log(date, weightLbs, notes)
+      : request<{ log: WeightLog }>('/weight', {
+          method: 'POST',
+          body: JSON.stringify({ date, weightLbs, notes }),
+        }),
 
   delete: (id: number) =>
-    request<{ success: boolean }>(`/weight/${id}`, { method: 'DELETE' }),
+    isGuestMode() ? localWeight.delete(id) : request<{ success: boolean }>(`/weight/${id}`, { method: 'DELETE' }),
 };

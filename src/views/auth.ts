@@ -1,6 +1,7 @@
 import { auth } from '../api';
 import { setState } from '../state';
 import { navigate, getQueryParams } from '../router';
+import { setGuestMode, getGuestUser } from '../local-db';
 
 export function loginView() {
   return {
@@ -27,6 +28,9 @@ export function loginView() {
             <a href="#/forgot-password">Forgot password?</a>
             <a href="#/register">Create account</a>
           </div>
+          <div class="auth-divider"><span>or</span></div>
+          <button id="guest-btn" class="btn btn-outline btn-block">Continue without an account</button>
+          <p class="auth-hint">Your data will be stored on this device only</p>
         </div>
       </div>
     `,
@@ -53,6 +57,12 @@ export function loginView() {
           btn.disabled = false;
           btn.textContent = 'Log In';
         }
+      });
+
+      document.getElementById('guest-btn')!.addEventListener('click', () => {
+        setGuestMode(true);
+        setState({ user: getGuestUser() });
+        navigate('#/');
       });
     },
   };

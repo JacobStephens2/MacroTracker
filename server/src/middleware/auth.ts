@@ -35,6 +35,18 @@ export function setTokenCookie(res: Response, token: string) {
   });
 }
 
+export function optionalAuth(req: Request, res: Response, next: NextFunction) {
+  const token = req.cookies?.token;
+  if (token) {
+    try {
+      req.user = jwt.verify(token, getSecret()) as AuthPayload;
+    } catch {
+      // Invalid token — continue without user
+    }
+  }
+  next();
+}
+
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = req.cookies?.token;
   if (!token) {

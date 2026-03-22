@@ -1,29 +1,32 @@
 import { Router, Request, Response } from 'express';
 import { getDb } from '../db.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
 
 // Search foods (local DB first, then APIs)
-router.get('/search', requireAuth, async (req: Request, res: Response) => {
+router.get('/search', optionalAuth, async (req: Request, res: Response) => {
   try {
     const query = (req.query.q as string || '').trim();
     if (!query) {
-      res.json({ foods: [] });
+      res.json({ foods: [], external: [] });
       return;
     }
 
     const db = getDb();
-    // Search local foods first (user's custom + cached)
-    const local = db.prepare(`
-      SELECT * FROM foods
-      WHERE (user_id = ? OR user_id IS NULL)
-        AND (name LIKE ? OR brand LIKE ?)
-      ORDER BY
-        CASE WHEN user_id = ? THEN 0 ELSE 1 END,
-        name
-      LIMIT 20
-    `).all(req.user!.userId, `%${query}%`, `%${query}%`, req.user!.userId) as any[];
+    // Search local foods (user's custom + cached) — only if authenticated
+    let local: any[] = [];
+    if (req.user) {
+      local = db.prepare(`
+        SELECT * FROM foods
+        WHERE (user_id = ? OR user_id IS NULL)
+          AND (name LIKE ? OR brand LIKE ?)
+        ORDER BY
+          CASE WHEN user_id = ? THEN 0 ELSE 1 END,
+          name
+        LIMIT 20
+      `).all(req.user.userId, `%${query}%`, `%${query}%`, req.user.userId) as any[];
+    }
 
     // Search external APIs
     const [offResults, usdaResults] = await Promise.allSettled([
@@ -43,7 +46,7 @@ router.get('/search', requireAuth, async (req: Request, res: Response) => {
 });
 
 // Barcode lookup
-router.get('/barcode/:code', requireAuth, async (req: Request, res: Response) => {
+router.get('/barcode/:code', optionalAuth, async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
     const db = getDb();
@@ -187,7 +190,7 @@ router.delete('/:id', requireAuth, (req: Request, res: Response) => {
 });
 
 // Save an external food result to local DB for logging
-router.post('/save-external', requireAuth, (req: Request, res: Response) => {
+router.post('/save-external', optionalAuth, (req: Request, res: Response) => {
   try {
     const db = getDb();
     const { name, brand, barcode, servingSize, servingUnit, calories, carbsG, proteinG, fatG, fiberG, sugarG, source, sourceId, measures } = req.body;

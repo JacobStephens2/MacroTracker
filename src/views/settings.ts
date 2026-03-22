@@ -1,9 +1,53 @@
 import { auth } from '../api';
 import { state, setState } from '../state';
 import { navigate } from '../router';
+import { isGuestMode, clearGuestData } from '../local-db';
 
 export function settingsView() {
   const user = state.user!;
+  const guest = isGuestMode();
+
+  const guestBanner = guest
+    ? `<div class="settings-section guest-banner">
+        <p><strong>You're using guest mode.</strong> Your data is stored on this device only and won't sync across devices.</p>
+        <a href="#/register" class="btn btn-primary btn-block">Create an Account</a>
+        <a href="#/login" class="btn btn-outline btn-block" style="margin-top:8px">Sign In</a>
+      </div>`
+    : '';
+
+  const passwordSection = guest
+    ? ''
+    : `<div class="settings-section">
+        <h3>Change Password</h3>
+        <form id="password-form">
+          <div class="form-group">
+            <label for="s-current-pw">Current Password</label>
+            <input type="password" id="s-current-pw" autocomplete="current-password" />
+          </div>
+          <div class="form-group">
+            <label for="s-new-pw">New Password</label>
+            <input type="password" id="s-new-pw" minlength="8" autocomplete="new-password" />
+          </div>
+          <div id="pw-msg" class="hidden"></div>
+          <button type="submit" class="btn btn-outline btn-block">Change Password</button>
+        </form>
+      </div>`;
+
+  const exportSection = guest
+    ? ''
+    : `<div class="settings-section">
+        <h3>Export Data</h3>
+        <a href="/api/meals/export/csv" class="btn btn-outline btn-block" download style="margin-bottom:8px">Download Meal Log (CSV)</a>
+        <a href="/api/weight/export/csv" class="btn btn-outline btn-block" download>Download Weight Log (CSV)</a>
+      </div>`;
+
+  const logoutSection = guest
+    ? `<div class="settings-section">
+        <button id="logout-btn" class="btn btn-danger btn-block">Clear Data & Exit Guest Mode</button>
+      </div>`
+    : `<div class="settings-section">
+        <button id="logout-btn" class="btn btn-danger btn-block">Log Out</button>
+      </div>`;
 
   return {
     html: `
@@ -11,6 +55,8 @@ export function settingsView() {
         <header class="page-header">
           <h1>Settings</h1>
         </header>
+
+        ${guestBanner}
 
         <div class="settings-section">
           <h3>Profile</h3>
@@ -62,31 +108,9 @@ export function settingsView() {
           </form>
         </div>
 
-        <div class="settings-section">
-          <h3>Change Password</h3>
-          <form id="password-form">
-            <div class="form-group">
-              <label for="s-current-pw">Current Password</label>
-              <input type="password" id="s-current-pw" autocomplete="current-password" />
-            </div>
-            <div class="form-group">
-              <label for="s-new-pw">New Password</label>
-              <input type="password" id="s-new-pw" minlength="8" autocomplete="new-password" />
-            </div>
-            <div id="pw-msg" class="hidden"></div>
-            <button type="submit" class="btn btn-outline btn-block">Change Password</button>
-          </form>
-        </div>
-
-        <div class="settings-section">
-          <h3>Export Data</h3>
-          <a href="/api/meals/export/csv" class="btn btn-outline btn-block" download style="margin-bottom:8px">Download Meal Log (CSV)</a>
-          <a href="/api/weight/export/csv" class="btn btn-outline btn-block" download>Download Weight Log (CSV)</a>
-        </div>
-
-        <div class="settings-section">
-          <button id="logout-btn" class="btn btn-danger btn-block">Log Out</button>
-        </div>
+        ${passwordSection}
+        ${exportSection}
+        ${logoutSection}
       </div>
     `,
     init: () => {
@@ -124,25 +148,32 @@ export function settingsView() {
         }
       });
 
-      // Password form
-      document.getElementById('password-form')!.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const current = (document.getElementById('s-current-pw') as HTMLInputElement).value;
-        const newPw = (document.getElementById('s-new-pw') as HTMLInputElement).value;
+      // Password form (only for real users)
+      if (!guest) {
+        document.getElementById('password-form')!.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const current = (document.getElementById('s-current-pw') as HTMLInputElement).value;
+          const newPw = (document.getElementById('s-new-pw') as HTMLInputElement).value;
 
-        try {
-          await auth.changePassword(current, newPw);
-          showMsg('pw-msg', 'Password changed!', 'success');
-          (document.getElementById('s-current-pw') as HTMLInputElement).value = '';
-          (document.getElementById('s-new-pw') as HTMLInputElement).value = '';
-        } catch (err: any) {
-          showMsg('pw-msg', err.message, 'error');
-        }
-      });
+          try {
+            await auth.changePassword(current, newPw);
+            showMsg('pw-msg', 'Password changed!', 'success');
+            (document.getElementById('s-current-pw') as HTMLInputElement).value = '';
+            (document.getElementById('s-new-pw') as HTMLInputElement).value = '';
+          } catch (err: any) {
+            showMsg('pw-msg', err.message, 'error');
+          }
+        });
+      }
 
       // Logout
       document.getElementById('logout-btn')!.addEventListener('click', async () => {
-        await auth.logout();
+        if (guest) {
+          if (!confirm('This will clear all your guest data. Continue?')) return;
+          clearGuestData();
+        } else {
+          await auth.logout();
+        }
         setState({ user: null });
         navigate('#/login');
       });
