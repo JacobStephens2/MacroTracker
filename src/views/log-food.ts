@@ -190,6 +190,7 @@ async function loadTab(tab: string, mealType: MealType, date: string) {
         content.innerHTML = '<p class="text-muted">No recipes yet. <a href="#/recipes">Create one</a></p>';
         return;
       }
+      content.innerHTML = '';
       renderRecipeList(content, recipes, mealType, date);
     } catch {
       content.innerHTML = '<p class="form-error">Failed to load recipes</p>';
