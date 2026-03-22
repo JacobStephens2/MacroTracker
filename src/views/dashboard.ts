@@ -270,18 +270,20 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
         const brand = item.food_brand ? `<span class="food-brand">${item.food_brand}</span>` : '';
         const servingsLabel = item.servings !== 1 ? `${item.servings}x ` : '';
         html += `
-          <div class="meal-item" data-id="${item.id}">
-            <div class="meal-item-info">
-              <span class="meal-item-name">${servingsLabel}${name}</span>
-              ${brand}
+          <div class="meal-item-wrapper" data-id="${item.id}">
+            <div class="meal-item-swipe-bg">Delete</div>
+            <div class="meal-item" data-id="${item.id}">
+              <div class="meal-item-info">
+                <span class="meal-item-name">${servingsLabel}${name}</span>
+                ${brand}
+              </div>
+              <div class="meal-item-macros">
+                <span class="macro-chip chip-calories">${Math.round(item.calories)}</span>
+                <span class="macro-chip chip-carbs">${Math.round(item.carbs_g)}c</span>
+                <span class="macro-chip chip-protein">${Math.round(item.protein_g)}p</span>
+                <span class="macro-chip chip-fat">${Math.round(item.fat_g)}f</span>
+              </div>
             </div>
-            <div class="meal-item-macros">
-              <span class="macro-chip chip-calories">${Math.round(item.calories)}</span>
-              <span class="macro-chip chip-carbs">${Math.round(item.carbs_g)}c</span>
-              <span class="macro-chip chip-protein">${Math.round(item.protein_g)}p</span>
-              <span class="macro-chip chip-fat">${Math.round(item.fat_g)}f</span>
-            </div>
-            <button class="btn-icon btn-delete-meal" data-meal-id="${item.id}" aria-label="Delete">&times;</button>
           </div>
         `;
       }
@@ -305,18 +307,60 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
     });
   });
 
-  // Delete buttons
-  container.querySelectorAll('.btn-delete-meal').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const mealId = parseInt((btn as HTMLElement).dataset.mealId || '0');
-      if (mealId && confirm('Remove this entry?')) {
-        try {
-          await mealsApi.delete(mealId);
-          loadMeals(date);
-        } catch {
-          // Silently fail
+  // Swipe-to-delete
+  container.querySelectorAll('.meal-item-wrapper').forEach((wrapper) => {
+    const el = wrapper as HTMLElement;
+    const inner = el.querySelector('.meal-item') as HTMLElement;
+    let startX = 0, currentX = 0, swiping = false;
+
+    const onStart = (clientX: number) => {
+      startX = clientX;
+      currentX = 0;
+      swiping = true;
+      inner.style.transition = 'none';
+    };
+
+    const onMove = (clientX: number) => {
+      if (!swiping) return;
+      currentX = clientX - startX;
+      if (currentX > 0) currentX = 0; // Only swipe left
+      inner.style.transform = `translateX(${currentX}px)`;
+    };
+
+    const onEnd = async () => {
+      if (!swiping) return;
+      swiping = false;
+      inner.style.transition = 'transform 0.2s ease';
+
+      if (currentX < -80) {
+        // Delete
+        inner.style.transform = 'translateX(-100%)';
+        const mealId = parseInt(el.dataset.id || '0');
+        if (mealId) {
+          try {
+            await mealsApi.delete(mealId);
+            el.style.height = el.offsetHeight + 'px';
+            requestAnimationFrame(() => {
+              el.style.transition = 'height 0.2s, opacity 0.2s';
+              el.style.height = '0';
+              el.style.opacity = '0';
+              el.style.overflow = 'hidden';
+            });
+            setTimeout(() => loadMeals(date), 300);
+          } catch { /* ignore */ }
         }
+      } else {
+        inner.style.transform = 'translateX(0)';
       }
-    });
+    };
+
+    inner.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX), { passive: true });
+    inner.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX), { passive: true });
+    inner.addEventListener('touchend', onEnd);
+
+    // Mouse fallback for desktop
+    inner.addEventListener('mousedown', (e) => { onStart(e.clientX); e.preventDefault(); });
+    document.addEventListener('mousemove', (e) => { if (swiping) onMove(e.clientX); });
+    document.addEventListener('mouseup', () => { if (swiping) onEnd(); });
   });
 }

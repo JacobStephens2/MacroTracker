@@ -476,15 +476,39 @@ input, button, select, textarea {
   border-left: 3px solid var(--danger);
 }
 
+.meal-item-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.meal-item-swipe-bg {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100px;
+  background: var(--danger);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+}
+
 .meal-item {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 0;
   border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: relative;
+  z-index: 1;
+  touch-action: pan-y;
 }
 
-.meal-item:last-of-type { border-bottom: none; }
+.meal-item-wrapper:last-of-type .meal-item { border-bottom: none; }
 
 .meal-item-info {
   flex: 1;
@@ -504,13 +528,6 @@ input, button, select, textarea {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
-}
-
-.btn-delete-meal {
-  width: 28px;
-  height: 28px;
-  font-size: 16px;
-  color: var(--text-secondary);
 }
 
 .btn-add-meal {
