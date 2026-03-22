@@ -1,0 +1,103 @@
+export interface User {
+  id: number;
+  email: string;
+  firstName: string;
+  emailVerified: boolean;
+  heightInches: number;
+  currentWeightLbs: number;
+  targetCalories: number;
+  targetCarbsG: number;
+  targetProteinG: number;
+  targetFatG: number;
+}
+
+export interface Food {
+  id: number;
+  user_id: number | null;
+  name: string;
+  brand: string | null;
+  barcode: string | null;
+  serving_size: number;
+  serving_unit: string;
+  calories: number;
+  carbs_g: number;
+  protein_g: number;
+  fat_g: number;
+  fiber_g: number;
+  sugar_g: number;
+  source: string;
+  source_id: string | null;
+}
+
+export interface ExternalFood {
+  name: string;
+  brand: string | null;
+  barcode: string | null;
+  servingSize: number;
+  servingUnit: string;
+  calories: number;
+  carbsG: number;
+  proteinG: number;
+  fatG: number;
+  fiberG: number;
+  sugarG: number;
+  source: string;
+  sourceId: string | null;
+}
+
+export interface MealLog {
+  id: number;
+  user_id: number;
+  date: string;
+  meal_type: MealType;
+  food_id: number | null;
+  recipe_id: number | null;
+  servings: number;
+  calories: number;
+  carbs_g: number;
+  protein_g: number;
+  fat_g: number;
+  note: string | null;
+  food_name: string | null;
+  food_brand: string | null;
+  serving_size: number | null;
+  serving_unit: string | null;
+  recipe_name: string | null;
+}
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export interface Recipe {
+  id: number;
+  user_id: number;
+  name: string;
+  total_servings: number;
+  ingredientCount: number;
+  perServing: {
+    calories: number;
+    carbsG: number;
+    proteinG: number;
+    fatG: number;
+  };
+}
+
+export interface RecipeIngredient {
+  id: number;
+  food_id: number;
+  servings: number;
+  name: string;
+  brand: string | null;
+  serving_size: number;
+  serving_unit: string;
+  calories: number;
+  carbs_g: number;
+  protein_g: number;
+  fat_g: number;
+}
+
+export interface WeightLog {
+  id: number;
+  date: string;
+  weight_lbs: number;
+  notes: string | null;
+}
