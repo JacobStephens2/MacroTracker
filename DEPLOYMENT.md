@@ -71,6 +71,8 @@ Environment=NODE_ENV=production
 Environment=JWT_SECRET=<secret>
 Environment=PORT=3457
 Environment=USDA_API_KEY=<key>
+Environment=FATSECRET_CLIENT_ID=<client_id>
+Environment=FATSECRET_CLIENT_SECRET=<client_secret>
 Environment=SMTP_HOST=smtp.mandrillapp.com
 Environment=SMTP_PORT=587
 Environment=SMTP_USER=<user>

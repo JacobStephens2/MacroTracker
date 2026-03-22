@@ -4,6 +4,42 @@ import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
 
+// --- FatSecret OAuth 2.0 token cache ---
+let fatSecretToken: string | null = null;
+let fatSecretTokenExpiry = 0;
+
+async function getFatSecretToken(): Promise<string | null> {
+  const clientId = process.env.FATSECRET_CLIENT_ID;
+  const clientSecret = process.env.FATSECRET_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+
+  // Reuse cached token if still valid (with 60s buffer)
+  if (fatSecretToken && Date.now() < fatSecretTokenExpiry - 60_000) {
+    return fatSecretToken;
+  }
+
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+  const response = await fetch('https://oauth.fatsecret.com/connect/token', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${credentials}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'grant_type=client_credentials&scope=basic',
+    signal: AbortSignal.timeout(5000),
+  });
+
+  if (!response.ok) {
+    console.error('FatSecret token error:', response.status);
+    return null;
+  }
+
+  const data = await response.json();
+  fatSecretToken = data.access_token;
+  fatSecretTokenExpiry = Date.now() + data.expires_in * 1000;
+  return fatSecretToken;
+}
+
 // Search foods (local DB first, then APIs)
 router.get('/search', optionalAuth, async (req: Request, res: Response) => {
   try {
@@ -29,14 +65,16 @@ router.get('/search', optionalAuth, async (req: Request, res: Response) => {
     }
 
     // Search external APIs
-    const [offResults, usdaResults] = await Promise.allSettled([
+    const [offResults, usdaResults, fsResults] = await Promise.allSettled([
       searchOpenFoodFacts(query),
       searchUSDA(query),
+      searchFatSecret(query),
     ]);
 
     const external: any[] = [];
     if (offResults.status === 'fulfilled') external.push(...offResults.value);
     if (usdaResults.status === 'fulfilled') external.push(...usdaResults.value);
+    if (fsResults.status === 'fulfilled') external.push(...fsResults.value);
 
     res.json({ foods: local, external });
   } catch (e) {
@@ -48,7 +86,7 @@ router.get('/search', optionalAuth, async (req: Request, res: Response) => {
 // Barcode lookup
 router.get('/barcode/:code', optionalAuth, async (req: Request, res: Response) => {
   try {
-    const { code } = req.params;
+    const code = req.params.code as string;
     const db = getDb();
 
     // Check local cache first
@@ -58,44 +96,55 @@ router.get('/barcode/:code', optionalAuth, async (req: Request, res: Response) =
       return;
     }
 
-    // Try Open Food Facts
-    const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`);
-    if (!response.ok) {
+    // Try Open Food Facts first
+    let food: any = null;
+
+    try {
+      const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`,
+        { signal: AbortSignal.timeout(5000) });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 1 && data.product) {
+          const p = data.product;
+          const nutriments = p.nutriments || {};
+          food = {
+            name: p.product_name || 'Unknown Product',
+            brand: p.brands || null,
+            barcode: code,
+            serving_size: parseFloat(p.serving_quantity) || 100,
+            serving_unit: p.serving_quantity_unit || 'g',
+            calories: nutriments['energy-kcal_serving'] || nutriments['energy-kcal_100g'] || 0,
+            carbs_g: nutriments.carbohydrates_serving || nutriments.carbohydrates_100g || 0,
+            protein_g: nutriments.proteins_serving || nutriments.proteins_100g || 0,
+            fat_g: nutriments.fat_serving || nutriments.fat_100g || 0,
+            fiber_g: nutriments.fiber_serving || nutriments.fiber_100g || 0,
+            sugar_g: nutriments.sugars_serving || nutriments.sugars_100g || 0,
+            source: 'openfoodfacts',
+            source_id: code,
+          };
+        }
+      }
+    } catch {
+      // Open Food Facts failed, will try FatSecret
+    }
+
+    // Fall back to FatSecret barcode lookup
+    if (!food) {
+      food = await barcodeFatSecret(code);
+    }
+
+    if (!food) {
       res.status(404).json({ error: 'Product not found' });
       return;
     }
-
-    const data = await response.json();
-    if (data.status !== 1 || !data.product) {
-      res.status(404).json({ error: 'Product not found' });
-      return;
-    }
-
-    const p = data.product;
-    const nutriments = p.nutriments || {};
-    const food = {
-      name: p.product_name || 'Unknown Product',
-      brand: p.brands || null,
-      barcode: code,
-      serving_size: parseFloat(p.serving_quantity) || 100,
-      serving_unit: p.serving_quantity_unit || 'g',
-      calories: nutriments['energy-kcal_serving'] || nutriments['energy-kcal_100g'] || 0,
-      carbs_g: nutriments.carbohydrates_serving || nutriments.carbohydrates_100g || 0,
-      protein_g: nutriments.proteins_serving || nutriments.proteins_100g || 0,
-      fat_g: nutriments.fat_serving || nutriments.fat_100g || 0,
-      fiber_g: nutriments.fiber_serving || nutriments.fiber_100g || 0,
-      sugar_g: nutriments.sugars_serving || nutriments.sugars_100g || 0,
-      source: 'openfoodfacts',
-      source_id: code,
-    };
 
     // Cache it
     const result = db.prepare(`
-      INSERT INTO foods (name, brand, barcode, serving_size, serving_unit, calories, carbs_g, protein_g, fat_g, fiber_g, sugar_g, source, source_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO foods (name, brand, barcode, serving_size, serving_unit, calories, carbs_g, protein_g, fat_g, fiber_g, sugar_g, source, source_id, measures)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(food.name, food.brand, food.barcode, food.serving_size, food.serving_unit,
            food.calories, food.carbs_g, food.protein_g, food.fat_g, food.fiber_g, food.sugar_g,
-           food.source, food.source_id);
+           food.source, food.source_id, food.measures ? JSON.stringify(food.measures) : null);
 
     res.json({ food: { id: result.lastInsertRowid, ...food } });
   } catch (e) {
@@ -318,6 +367,62 @@ async function searchUSDA(query: string): Promise<any[]> {
   } catch {
     return [];
   }
+}
+
+// Helper: search FatSecret (v1 basic scope — parses description string)
+async function searchFatSecret(query: string): Promise<any[]> {
+  try {
+    const token = await getFatSecretToken();
+    if (!token) return [];
+
+    const url = `https://platform.fatsecret.com/rest/server.api?method=foods.search&search_expression=${encodeURIComponent(query)}&max_results=10&format=json`;
+    const response = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const foods = data.foods?.food;
+    if (!foods || !Array.isArray(foods)) return [];
+
+    return foods.map((f: any) => {
+      // Description format: "Per 101g - Calories: 197kcal | Fat: 7.79g | Carbs: 0.00g | Protein: 29.80g"
+      const desc = f.food_description || '';
+      const servingMatch = desc.match(/^Per\s+([\d.]+)(g|ml|oz)/i);
+      const servingSize = servingMatch ? parseFloat(servingMatch[1]) : 100;
+      const servingUnit = servingMatch ? servingMatch[2] : 'g';
+
+      const getVal = (label: string) => {
+        const m = desc.match(new RegExp(`${label}:\\s*([\\d.]+)`));
+        return m ? parseFloat(m[1]) : 0;
+      };
+
+      return {
+        name: f.food_name || 'Unknown',
+        brand: f.brand_name || null,
+        barcode: null,
+        servingSize,
+        servingUnit,
+        calories: Math.round(getVal('Calories')),
+        carbsG: Math.round(getVal('Carbs') * 10) / 10,
+        proteinG: Math.round(getVal('Protein') * 10) / 10,
+        fatG: Math.round(getVal('Fat') * 10) / 10,
+        fiberG: Math.round(getVal('Fiber') * 10) / 10,
+        sugarG: Math.round(getVal('Sugar') * 10) / 10,
+        source: 'fatsecret',
+        sourceId: String(f.food_id),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+// Helper: barcode lookup via FatSecret (requires barcode scope — gracefully skipped if unavailable)
+async function barcodeFatSecret(_code: string): Promise<any | null> {
+  // Barcode lookup requires the paid 'barcode' scope; return null to fall through
+  return null;
 }
 
 export default router;

@@ -53,6 +53,8 @@ Environment variables for the server (set in systemd service or `.env`):
 | `SMTP_FROM` | From email address |
 | `APP_URL` | Public URL (for email links) |
 | `USDA_API_KEY` | USDA FoodData Central API key |
+| `FATSECRET_CLIENT_ID` | FatSecret Platform API client ID |
+| `FATSECRET_CLIENT_SECRET` | FatSecret Platform API client secret |
 
 ## Deploy
 

@@ -660,6 +660,17 @@ input, button, select, textarea {
   padding: 12px 12px 4px;
 }
 
+.api-attribution {
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 11px;
+}
+
+.api-attribution a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
 /* ===== SEARCH BAR ===== */
 .search-bar {
   display: flex;

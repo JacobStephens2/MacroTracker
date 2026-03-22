@@ -230,6 +230,13 @@ async function searchFoods(query: string, mealType: MealType, date: string) {
       extHeader.textContent = 'External Results';
       content.appendChild(extHeader);
       renderExternalList(content, external, mealType, date);
+
+      if (external.some(f => f.source === 'fatsecret')) {
+        const attr = document.createElement('div');
+        attr.className = 'api-attribution';
+        attr.innerHTML = '<a href="https://platform.fatsecret.com" target="_blank" rel="noopener">Powered by FatSecret Platform API</a>';
+        content.appendChild(attr);
+      }
     }
 
     if (foods.length === 0 && external.length === 0) {
