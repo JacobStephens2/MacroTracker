@@ -222,7 +222,7 @@ router.post('/save-external', requireAuth, (req: Request, res: Response) => {
 async function searchOpenFoodFacts(query: string): Promise<any[]> {
   try {
     const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10&fields=product_name,brands,code,nutriments,serving_quantity,serving_quantity_unit`;
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) return [];
     const data = await response.json();
     return (data.products || [])
@@ -255,7 +255,7 @@ async function searchUSDA(query: string): Promise<any[]> {
   try {
     const apiKey = process.env.USDA_API_KEY || 'DEMO_KEY';
     const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&pageSize=10&api_key=${apiKey}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) return [];
     const data = await response.json();
     return (data.foods || []).map((f: any) => {
