@@ -79,6 +79,12 @@ export function settingsView() {
         </div>
 
         <div class="settings-section">
+          <h3>Export Data</h3>
+          <a href="/api/meals/export/csv" class="btn btn-outline btn-block" download style="margin-bottom:8px">Download Meal Log (CSV)</a>
+          <a href="/api/weight/export/csv" class="btn btn-outline btn-block" download>Download Weight Log (CSV)</a>
+        </div>
+
+        <div class="settings-section">
           <button id="logout-btn" class="btn btn-danger btn-block">Log Out</button>
         </div>
       </div>

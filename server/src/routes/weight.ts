@@ -61,4 +61,20 @@ router.delete('/:id', requireAuth, (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
+// Export weight as CSV
+router.get('/export/csv', requireAuth, (req: Request, res: Response) => {
+  const db = getDb();
+  const logs = db.prepare('SELECT date, weight_lbs, notes FROM weight_logs WHERE user_id = ? ORDER BY date DESC').all(req.user!.userId) as any[];
+
+  const header = 'Date,Weight(lbs),Notes';
+  const rows = logs.map((l: any) => {
+    const esc = (s: string | null) => s ? `"${s.replace(/"/g, '""')}"` : '';
+    return `${l.date},${l.weight_lbs},${esc(l.notes)}`;
+  });
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=macro-tracker-weight.csv');
+  res.send([header, ...rows].join('\n'));
+});
+
 export default router;

@@ -202,6 +202,31 @@ router.post('/quick', requireAuth, (req: Request, res: Response) => {
   }
 });
 
+// Export meals as CSV
+router.get('/export/csv', requireAuth, (req: Request, res: Response) => {
+  const db = getDb();
+  const meals = db.prepare(`
+    SELECT m.date, m.meal_type, m.servings, m.calories, m.carbs_g, m.protein_g, m.fat_g, m.note,
+           f.name as food_name, f.brand as food_brand, r.name as recipe_name
+    FROM meal_logs m
+    LEFT JOIN foods f ON m.food_id = f.id
+    LEFT JOIN recipes r ON m.recipe_id = r.id
+    WHERE m.user_id = ?
+    ORDER BY m.date DESC, m.meal_type
+  `).all(req.user!.userId) as any[];
+
+  const header = 'Date,Meal,Food,Brand,Servings,Calories,Carbs(g),Protein(g),Fat(g),Note';
+  const rows = meals.map((m: any) => {
+    const name = m.food_name || m.recipe_name || m.note || 'Quick entry';
+    const esc = (s: string | null) => s ? `"${s.replace(/"/g, '""')}"` : '';
+    return `${m.date},${m.meal_type},${esc(name)},${esc(m.food_brand)},${m.servings},${m.calories},${m.carbs_g},${m.protein_g},${m.fat_g},${esc(m.note)}`;
+  });
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=macro-tracker-meals.csv');
+  res.send([header, ...rows].join('\n'));
+});
+
 // Copy all meals from one date to another
 router.post('/copy', requireAuth, (req: Request, res: Response) => {
   try {
