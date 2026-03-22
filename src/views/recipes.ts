@@ -203,8 +203,15 @@ export function recipeEditView(params: Record<string, string>) {
               const item = document.createElement('div');
               item.className = 'food-item food-item-sm';
               item.innerHTML = `
-                <span class="food-item-name">${food.name}${food.brand ? ` (${food.brand})` : ''}</span>
-                <span class="food-serving">${food.serving_size}${food.serving_unit} · ${Math.round(food.calories)} kcal</span>
+                <div class="food-item-info">
+                  <span class="food-item-name">${food.name}${food.brand ? ` (${food.brand})` : ''}</span>
+                  <span class="food-serving">${food.serving_size}${food.serving_unit} · ${Math.round(food.calories)} kcal</span>
+                </div>
+                <div class="food-item-macros">
+                  <span class="macro-chip chip-carbs">${Math.round(food.carbs_g)}c</span>
+                  <span class="macro-chip chip-protein">${Math.round(food.protein_g)}p</span>
+                  <span class="macro-chip chip-fat">${Math.round(food.fat_g)}f</span>
+                </div>
               `;
               item.addEventListener('click', () => {
                 ingredients.push({ foodId: food.id, servings: 1, food: food as any });
@@ -219,8 +226,15 @@ export function recipeEditView(params: Record<string, string>) {
               const item = document.createElement('div');
               item.className = 'food-item food-item-sm';
               item.innerHTML = `
-                <span class="food-item-name">${ext.name}${ext.brand ? ` (${ext.brand})` : ''}</span>
-                <span class="food-serving">${ext.servingSize}${ext.servingUnit} · ${Math.round(ext.calories)} kcal</span>
+                <div class="food-item-info">
+                  <span class="food-item-name">${ext.name}${ext.brand ? ` (${ext.brand})` : ''}</span>
+                  <span class="food-serving">${ext.servingSize}${ext.servingUnit} · ${Math.round(ext.calories)} kcal</span>
+                </div>
+                <div class="food-item-macros">
+                  <span class="macro-chip chip-carbs">${Math.round(ext.carbsG)}c</span>
+                  <span class="macro-chip chip-protein">${Math.round(ext.proteinG)}p</span>
+                  <span class="macro-chip chip-fat">${Math.round(ext.fatG)}f</span>
+                </div>
               `;
               item.addEventListener('click', async () => {
                 try {
