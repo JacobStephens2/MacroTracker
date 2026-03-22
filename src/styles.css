@@ -812,11 +812,10 @@ input.searching,
   display: block;
 }
 
-.ingredient-cal {
-  font-size: 12px;
-  color: var(--text-secondary);
-  min-width: 55px;
-  text-align: right;
+.ingredient-macros {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
 .recipe-totals {

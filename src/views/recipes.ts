@@ -504,6 +504,10 @@ function renderIngredients(
     const cal = (f.calories || 0) * ing.servings;
     const unit = ing.unitLabel || `${Math.round(ing.servings * 100) / 100}x`;
 
+    const c = (f.carbs_g || 0) * ing.servings;
+    const p = (f.protein_g || 0) * ing.servings;
+    const fat = (f.fat_g || 0) * ing.servings;
+
     const el = document.createElement('div');
     el.className = 'ingredient-row';
     el.innerHTML = `
@@ -511,7 +515,12 @@ function renderIngredients(
         <span class="ingredient-name">${f.name}</span>
         <span class="ingredient-unit">${unit}</span>
       </div>
-      <span class="ingredient-cal">${Math.round(cal)} kcal</span>
+      <div class="ingredient-macros">
+        <span class="macro-chip chip-calories">${Math.round(cal)}</span>
+        <span class="macro-chip chip-carbs">${Math.round(c)}c</span>
+        <span class="macro-chip chip-protein">${Math.round(p)}p</span>
+        <span class="macro-chip chip-fat">${Math.round(fat)}f</span>
+      </div>
       <button type="button" class="btn-icon btn-remove-ing" data-idx="${idx}">&times;</button>
     `;
     container.appendChild(el);
