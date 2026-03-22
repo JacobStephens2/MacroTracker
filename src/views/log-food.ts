@@ -1,6 +1,6 @@
 import { foods as foodsApi, meals as mealsApi, recipes as recipesApi } from '../api';
 import { navigate, getQueryParams, setCleanup } from '../router';
-import type { Food, ExternalFood, Recipe, MealType } from '../types';
+import type { Food, ExternalFood, FoodMeasure, Recipe, MealType } from '../types';
 
 export function logFoodView() {
   const params = getQueryParams();
@@ -345,22 +345,52 @@ function renderRecipeList(container: HTMLElement, recipeList: Recipe[], mealType
   container.appendChild(list);
 }
 
+function parseMeasures(food: Food): FoodMeasure[] {
+  if (!food.measures) return [];
+  try {
+    return JSON.parse(food.measures);
+  } catch {
+    return [];
+  }
+}
+
 function showAddModal(food: Food, mealType: MealType, date: string) {
   const modal = document.getElementById('food-detail-modal')!;
   document.getElementById('modal-food-name')!.textContent = food.name;
 
+  const measures = parseMeasures(food);
+  const hasMeasures = measures.length > 0;
+
+  // Base macros are per food.serving_size (in food.serving_unit, typically grams)
+  // When a measure is selected, scale = measure.gramWeight / food.serving_size
+  const baseCal = food.calories;
+  const baseC = food.carbs_g;
+  const baseP = food.protein_g;
+  const baseF = food.fat_g;
+
+  const measureOptions = hasMeasures
+    ? `<div class="form-group">
+        <label for="unit-select">Unit</label>
+        <select id="unit-select">
+          <option value="default">${food.serving_size}${food.serving_unit} (default)</option>
+          ${measures.map((m, i) => `<option value="${i}">${m.label} (${m.gramWeight}g)</option>`).join('')}
+        </select>
+      </div>`
+    : '';
+
   const body = document.getElementById('modal-body')!;
   body.innerHTML = `
     ${food.brand ? `<p class="food-brand">${food.brand}</p>` : ''}
-    <div class="modal-macros">
-      <div class="modal-macro"><strong>${food.calories}</strong> kcal</div>
-      <div class="modal-macro"><strong>${food.carbs_g}g</strong> carbs</div>
-      <div class="modal-macro"><strong>${food.protein_g}g</strong> protein</div>
-      <div class="modal-macro"><strong>${food.fat_g}g</strong> fat</div>
+    <div class="modal-macros" id="modal-per-unit">
+      <div class="modal-macro"><strong>${baseCal}</strong> kcal</div>
+      <div class="modal-macro"><strong>${baseC}g</strong> carbs</div>
+      <div class="modal-macro"><strong>${baseP}g</strong> protein</div>
+      <div class="modal-macro"><strong>${baseF}g</strong> fat</div>
     </div>
-    <p class="text-muted">Per ${food.serving_size}${food.serving_unit}</p>
+    <p class="text-muted" id="modal-per-label">Per ${food.serving_size}${food.serving_unit}</p>
+    ${measureOptions}
     <div class="form-group">
-      <label for="servings-input">Servings</label>
+      <label for="servings-input">Quantity</label>
       <div class="servings-control">
         <button id="serv-minus" class="btn-icon">-</button>
         <input type="number" id="servings-input" value="1" min="0.25" step="0.25" />
@@ -368,45 +398,81 @@ function showAddModal(food: Food, mealType: MealType, date: string) {
       </div>
     </div>
     <div class="modal-total" id="modal-total">
-      <span>${food.calories} kcal</span>
-      <span>${food.carbs_g}g C</span>
-      <span>${food.protein_g}g P</span>
-      <span>${food.fat_g}g F</span>
+      <span>${baseCal} kcal</span>
+      <span>${baseC}g C</span>
+      <span>${baseP}g P</span>
+      <span>${baseF}g F</span>
     </div>
     <button id="add-food-btn" class="btn btn-primary btn-block">Add to ${capitalize(mealType)}</button>
   `;
 
+  let unitScale = 1; // multiplier for selected unit vs default serving
+
   const servingsInput = document.getElementById('servings-input') as HTMLInputElement;
+  const unitSelect = document.getElementById('unit-select') as HTMLSelectElement | null;
+
   const updateTotal = () => {
-    const s = parseFloat(servingsInput.value) || 1;
+    const qty = parseFloat(servingsInput.value) || 1;
+    const cal = baseCal * unitScale * qty;
+    const c = baseC * unitScale * qty;
+    const p = baseP * unitScale * qty;
+    const f = baseF * unitScale * qty;
     document.getElementById('modal-total')!.innerHTML = `
-      <span>${Math.round(food.calories * s)} kcal</span>
-      <span>${Math.round(food.carbs_g * s * 10) / 10}g C</span>
-      <span>${Math.round(food.protein_g * s * 10) / 10}g P</span>
-      <span>${Math.round(food.fat_g * s * 10) / 10}g F</span>
+      <span>${Math.round(cal)} kcal</span>
+      <span>${Math.round(c * 10) / 10}g C</span>
+      <span>${Math.round(p * 10) / 10}g P</span>
+      <span>${Math.round(f * 10) / 10}g F</span>
     `;
   };
 
+  const updatePerUnit = () => {
+    const cal = Math.round(baseCal * unitScale);
+    const c = Math.round(baseC * unitScale * 10) / 10;
+    const p = Math.round(baseP * unitScale * 10) / 10;
+    const f = Math.round(baseF * unitScale * 10) / 10;
+    document.getElementById('modal-per-unit')!.innerHTML = `
+      <div class="modal-macro"><strong>${cal}</strong> kcal</div>
+      <div class="modal-macro"><strong>${c}g</strong> carbs</div>
+      <div class="modal-macro"><strong>${p}g</strong> protein</div>
+      <div class="modal-macro"><strong>${f}g</strong> fat</div>
+    `;
+  };
+
+  if (unitSelect) {
+    unitSelect.addEventListener('change', () => {
+      const val = unitSelect.value;
+      if (val === 'default') {
+        unitScale = 1;
+        document.getElementById('modal-per-label')!.textContent = `Per ${food.serving_size}${food.serving_unit}`;
+      } else {
+        const m = measures[parseInt(val)];
+        unitScale = m.gramWeight / food.serving_size;
+        document.getElementById('modal-per-label')!.textContent = `Per ${m.label} (${m.gramWeight}g)`;
+      }
+      updatePerUnit();
+      updateTotal();
+    });
+  }
+
   servingsInput.addEventListener('input', updateTotal);
   document.getElementById('serv-minus')!.addEventListener('click', () => {
-    const v = parseFloat(servingsInput.value) || 1;
-    servingsInput.value = String(Math.max(0.25, v - 0.25));
+    servingsInput.value = String(Math.max(0.25, (parseFloat(servingsInput.value) || 1) - 0.25));
     updateTotal();
   });
   document.getElementById('serv-plus')!.addEventListener('click', () => {
-    const v = parseFloat(servingsInput.value) || 1;
-    servingsInput.value = String(v + 0.25);
+    servingsInput.value = String((parseFloat(servingsInput.value) || 1) + 0.25);
     updateTotal();
   });
 
   document.getElementById('add-food-btn')!.addEventListener('click', async () => {
-    const servings = parseFloat(servingsInput.value) || 1;
+    const qty = parseFloat(servingsInput.value) || 1;
+    const effectiveServings = qty * unitScale;
     const btn = document.getElementById('add-food-btn') as HTMLButtonElement;
     btn.disabled = true;
     btn.textContent = 'Adding...';
 
     try {
-      await mealsApi.log({ date, mealType, foodId: food.id, servings });
+      await mealsApi.log({ date, mealType, foodId: food.id, servings: effectiveServings });
       closeModal();
       navigate('#/');
     } catch {

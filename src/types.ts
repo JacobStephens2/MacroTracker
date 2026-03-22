@@ -11,6 +11,11 @@ export interface User {
   targetFatG: number;
 }
 
+export interface FoodMeasure {
+  label: string;
+  gramWeight: number;
+}
+
 export interface Food {
   id: number;
   user_id: number | null;
@@ -27,6 +32,7 @@ export interface Food {
   sugar_g: number;
   source: string;
   source_id: string | null;
+  measures: string | null;
 }
 
 export interface ExternalFood {
@@ -43,6 +49,7 @@ export interface ExternalFood {
   sugarG: number;
   source: string;
   sourceId: string | null;
+  measures?: FoodMeasure[];
 }
 
 export interface MealLog {

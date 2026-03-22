@@ -190,7 +190,7 @@ router.delete('/:id', requireAuth, (req: Request, res: Response) => {
 router.post('/save-external', requireAuth, (req: Request, res: Response) => {
   try {
     const db = getDb();
-    const { name, brand, barcode, servingSize, servingUnit, calories, carbsG, proteinG, fatG, fiberG, sugarG, source, sourceId } = req.body;
+    const { name, brand, barcode, servingSize, servingUnit, calories, carbsG, proteinG, fatG, fiberG, sugarG, source, sourceId, measures } = req.body;
 
     // Check if already cached
     if (sourceId) {
@@ -201,12 +201,14 @@ router.post('/save-external', requireAuth, (req: Request, res: Response) => {
       }
     }
 
+    const measuresJson = measures && measures.length > 0 ? JSON.stringify(measures) : null;
+
     const result = db.prepare(`
-      INSERT INTO foods (name, brand, barcode, serving_size, serving_unit, calories, carbs_g, protein_g, fat_g, fiber_g, sugar_g, source, source_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO foods (name, brand, barcode, serving_size, serving_unit, calories, carbs_g, protein_g, fat_g, fiber_g, sugar_g, source, source_id, measures)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(name, brand || null, barcode || null, servingSize || 1, servingUnit || 'serving',
            calories || 0, carbsG || 0, proteinG || 0, fatG || 0, fiberG || 0, sugarG || 0,
-           source || 'manual', sourceId || null);
+           source || 'manual', sourceId || null, measuresJson);
 
     const food = db.prepare('SELECT * FROM foods WHERE id = ?').get(result.lastInsertRowid);
     res.json({ food });
@@ -257,24 +259,57 @@ async function searchUSDA(query: string): Promise<any[]> {
     if (!response.ok) return [];
     const data = await response.json();
     return (data.foods || []).map((f: any) => {
+      // Nutrients are per 100g for SR Legacy / Survey, per serving for Branded
       const get = (name: string) => {
         const n = (f.foodNutrients || []).find((n: any) => n.nutrientName === name);
         return n ? Math.round(n.value * 10) / 10 : 0;
       };
+
+      const isBranded = f.dataType === 'Branded';
+      const servingSize = f.servingSize || 100;
+      const servingUnit = f.servingSizeUnit || 'g';
+
+      // For non-branded, nutrients are per 100g — scale to default serving
+      const scale = isBranded ? 1 : servingSize / 100;
+      const cal = Math.round(get('Energy') * scale);
+      const carbs = Math.round(get('Carbohydrate, by difference') * scale * 10) / 10;
+      const protein = Math.round(get('Protein') * scale * 10) / 10;
+      const fat = Math.round(get('Total lipid (fat)') * scale * 10) / 10;
+      const fiber = Math.round(get('Fiber, total dietary') * scale * 10) / 10;
+      const sugar = Math.round((get('Sugars, total including NLEA') || get('Total Sugars')) * scale * 10) / 10;
+
+      // Build measures array from foodMeasures and householdServingFullText
+      const measures: { label: string; gramWeight: number }[] = [];
+
+      // Default serving
+      if (isBranded && f.householdServingFullText) {
+        measures.push({ label: f.householdServingFullText, gramWeight: servingSize });
+      }
+
+      // FNDDS / SR Legacy measures
+      if (f.foodMeasures && Array.isArray(f.foodMeasures)) {
+        for (const m of f.foodMeasures) {
+          if (m.disseminationText && m.gramWeight && m.disseminationText !== 'Quantity not specified') {
+            measures.push({ label: m.disseminationText, gramWeight: m.gramWeight });
+          }
+        }
+      }
+
       return {
         name: f.description || 'Unknown',
         brand: f.brandName || f.brandOwner || null,
         barcode: f.gtinUpc || null,
-        servingSize: f.servingSize || 100,
-        servingUnit: f.servingSizeUnit || 'g',
-        calories: Math.round(get('Energy')),
-        carbsG: get('Carbohydrate, by difference'),
-        proteinG: get('Protein'),
-        fatG: get('Total lipid (fat)'),
-        fiberG: get('Fiber, total dietary'),
-        sugarG: get('Sugars, total including NLEA') || get('Total Sugars'),
+        servingSize,
+        servingUnit,
+        calories: cal,
+        carbsG: carbs,
+        proteinG: protein,
+        fatG: fat,
+        fiberG: fiber,
+        sugarG: sugar,
         source: 'usda',
         sourceId: String(f.fdcId),
+        measures: measures.length > 0 ? measures : undefined,
       };
     });
   } catch {

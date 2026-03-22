@@ -67,6 +67,7 @@ function initSchema() {
       sugar_g REAL NOT NULL DEFAULT 0,
       source TEXT NOT NULL DEFAULT 'manual',
       source_id TEXT,
+      measures TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -124,9 +125,15 @@ function initSchema() {
   `);
 
   // Migrations for existing databases
+  const foodCols = db.prepare("PRAGMA table_info(foods)").all() as any[];
+  const foodColNames = foodCols.map((c: any) => c.name);
+  if (!foodColNames.includes('measures')) {
+    db.exec("ALTER TABLE foods ADD COLUMN measures TEXT");
+  }
+
   const cols = db.prepare("PRAGMA table_info(recipes)").all() as any[];
   const colNames = cols.map((c: any) => c.name);
-  if (!colNames.includes('serving_unit')) {
+  if (!colNames.includes('serving_unit') && colNames.includes('name')) {
     db.exec(`
       ALTER TABLE recipes ADD COLUMN serving_unit TEXT NOT NULL DEFAULT 'serving';
       ALTER TABLE recipes ADD COLUMN manual_calories REAL;
