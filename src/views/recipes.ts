@@ -202,7 +202,7 @@ export function recipeEditView(params: Record<string, string>) {
               item.className = 'food-item food-item-sm';
               item.innerHTML = `
                 <span class="food-item-name">${food.name}${food.brand ? ` (${food.brand})` : ''}</span>
-                <span class="food-serving">${Math.round(food.calories)} kcal</span>
+                <span class="food-serving">${food.serving_size}${food.serving_unit} · ${Math.round(food.calories)} kcal</span>
               `;
               item.addEventListener('click', () => {
                 ingredients.push({ foodId: food.id, servings: 1, food: food as any });
@@ -218,7 +218,7 @@ export function recipeEditView(params: Record<string, string>) {
               item.className = 'food-item food-item-sm';
               item.innerHTML = `
                 <span class="food-item-name">${ext.name}${ext.brand ? ` (${ext.brand})` : ''}</span>
-                <span class="food-serving">${Math.round(ext.calories)} kcal</span>
+                <span class="food-serving">${ext.servingSize}${ext.servingUnit} · ${Math.round(ext.calories)} kcal</span>
               `;
               item.addEventListener('click', async () => {
                 try {
