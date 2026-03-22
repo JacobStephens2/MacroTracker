@@ -502,7 +502,17 @@ function renderIngredients(
   ingredients.forEach((ing, idx) => {
     const f = ing.food;
     const cal = (f.calories || 0) * ing.servings;
-    const unit = ing.unitLabel || `${Math.round(ing.servings * 100) / 100}x`;
+    const servingSize = ('serving_size' in f ? f.serving_size : 0) || 0;
+    const servingUnit = ('serving_unit' in f ? f.serving_unit : '') || '';
+    let unit = ing.unitLabel;
+    if (!unit) {
+      if (servingSize && servingUnit) {
+        const totalAmount = Math.round(ing.servings * servingSize * 10) / 10;
+        unit = `${totalAmount}${servingUnit}`;
+      } else {
+        unit = `${Math.round(ing.servings * 100) / 100} serving${ing.servings !== 1 ? 's' : ''}`;
+      }
+    }
 
     const c = (f.carbs_g || 0) * ing.servings;
     const p = (f.protein_g || 0) * ing.servings;
