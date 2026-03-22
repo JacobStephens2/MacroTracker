@@ -188,8 +188,10 @@ export function recipeEditView(params: Record<string, string>) {
         const q = searchInput.value.trim();
         if (q.length < 2) {
           document.getElementById('ing-results')!.classList.add('hidden');
+          searchInput.classList.remove('searching');
           return;
         }
+        searchInput.classList.add('searching');
         searchTimeout = setTimeout(async () => {
           try {
             const { foods, external } = await foodsApi.search(q);
@@ -237,8 +239,8 @@ export function recipeEditView(params: Record<string, string>) {
             if (foods.length === 0 && external.length === 0) {
               results.innerHTML = '<p class="text-muted" style="padding:8px">No results</p>';
             }
-          } catch {
-            // Ignore
+          } finally {
+            searchInput.classList.remove('searching');
           }
         }, 400);
       });

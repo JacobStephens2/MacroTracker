@@ -635,7 +635,7 @@ input, button, select, textarea {
 }
 .search-bar input:focus { outline: none; border-color: var(--primary); }
 
-.search-bar input.searching {
+input.searching {
   border-color: var(--primary);
   background-image: linear-gradient(90deg, var(--primary) 0%, transparent 50%, var(--primary) 100%);
   background-size: 200% 2px;
