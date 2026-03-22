@@ -493,15 +493,9 @@ function showQuickAddForm(container: HTMLElement, mealType: MealType, date: stri
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label for="quick-cal">Calories</label>
-          <input type="number" id="quick-cal" min="0" step="1" />
-        </div>
-        <div class="form-group">
           <label for="quick-carbs">Carbs (g)</label>
           <input type="number" id="quick-carbs" min="0" step="0.1" />
         </div>
-      </div>
-      <div class="form-row">
         <div class="form-group">
           <label for="quick-protein">Protein (g)</label>
           <input type="number" id="quick-protein" min="0" step="0.1" />
@@ -511,9 +505,28 @@ function showQuickAddForm(container: HTMLElement, mealType: MealType, date: stri
           <input type="number" id="quick-fat" min="0" step="0.1" />
         </div>
       </div>
+      <div class="form-group">
+        <label for="quick-cal">Calories <span class="form-hint" id="quick-cal-hint">(auto-calculated)</span></label>
+        <input type="number" id="quick-cal" min="0" step="1" />
+      </div>
       <button type="submit" class="btn btn-primary btn-block">Add to ${capitalize(mealType)}</button>
     </form>
   `;
+
+  // Auto-calc calories from macros
+  const qCalInput = document.getElementById('quick-cal') as HTMLInputElement;
+  let qCalManual = false;
+  qCalInput.addEventListener('input', () => { qCalManual = true; });
+  const autoCalcQ = () => {
+    if (qCalManual) return;
+    const c = parseFloat((document.getElementById('quick-carbs') as HTMLInputElement).value) || 0;
+    const p = parseFloat((document.getElementById('quick-protein') as HTMLInputElement).value) || 0;
+    const f = parseFloat((document.getElementById('quick-fat') as HTMLInputElement).value) || 0;
+    qCalInput.value = String(Math.round(c * 4 + p * 4 + f * 9));
+  };
+  ['quick-carbs', 'quick-protein', 'quick-fat'].forEach(id =>
+    document.getElementById(id)!.addEventListener('input', autoCalcQ)
+  );
 
   document.getElementById('quick-form')!.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -562,15 +575,9 @@ function showCreateFoodForm(mealType: MealType, date: string) {
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label for="cf-cal">Calories</label>
-          <input type="number" id="cf-cal" min="0" step="1" />
-        </div>
-        <div class="form-group">
           <label for="cf-carbs">Carbs (g)</label>
           <input type="number" id="cf-carbs" min="0" step="0.1" />
         </div>
-      </div>
-      <div class="form-row">
         <div class="form-group">
           <label for="cf-protein">Protein (g)</label>
           <input type="number" id="cf-protein" min="0" step="0.1" />
@@ -580,10 +587,29 @@ function showCreateFoodForm(mealType: MealType, date: string) {
           <input type="number" id="cf-fat" min="0" step="0.1" />
         </div>
       </div>
+      <div class="form-group">
+        <label for="cf-cal">Calories <span class="form-hint" id="cf-cal-hint">(auto-calculated)</span></label>
+        <input type="number" id="cf-cal" min="0" step="1" />
+      </div>
       <button type="submit" class="btn btn-primary btn-block">Create & Add to ${capitalize(mealType)}</button>
       <button type="button" id="cancel-create" class="btn btn-outline btn-block">Cancel</button>
     </form>
   `;
+
+  // Auto-calc calories from macros
+  const cfCalInput = document.getElementById('cf-cal') as HTMLInputElement;
+  let cfCalManual = false;
+  cfCalInput.addEventListener('input', () => { cfCalManual = true; });
+  const autoCalcCf = () => {
+    if (cfCalManual) return;
+    const c = parseFloat((document.getElementById('cf-carbs') as HTMLInputElement).value) || 0;
+    const p = parseFloat((document.getElementById('cf-protein') as HTMLInputElement).value) || 0;
+    const f = parseFloat((document.getElementById('cf-fat') as HTMLInputElement).value) || 0;
+    cfCalInput.value = String(Math.round(c * 4 + p * 4 + f * 9));
+  };
+  ['cf-carbs', 'cf-protein', 'cf-fat'].forEach(id =>
+    document.getElementById(id)!.addEventListener('input', autoCalcCf)
+  );
 
   document.getElementById('cancel-create')!.addEventListener('click', () => {
     loadTab('custom', mealType, date);
