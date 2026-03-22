@@ -75,6 +75,16 @@ export function dashboardView() {
         <div id="meals-container" class="meals-container">
           <div class="loading-spinner">Loading...</div>
         </div>
+
+        <div id="edit-meal-modal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2 id="edit-meal-name"></h2>
+              <button id="edit-modal-close" class="btn-icon">&times;</button>
+            </div>
+            <div id="edit-meal-body"></div>
+          </div>
+        </div>
       </div>
     `,
     init: () => {
@@ -112,6 +122,11 @@ export function dashboardView() {
         // Fallback if showPicker not supported
         input.focus();
         input.click();
+      });
+
+      // Edit modal close
+      document.getElementById('edit-modal-close')!.addEventListener('click', () => {
+        document.getElementById('edit-meal-modal')!.classList.add('hidden');
       });
 
       // Copy previous day
@@ -307,22 +322,24 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
     });
   });
 
-  // Swipe-to-delete
+  // Swipe-to-delete and tap-to-edit
   container.querySelectorAll('.meal-item-wrapper').forEach((wrapper) => {
     const el = wrapper as HTMLElement;
     const inner = el.querySelector('.meal-item') as HTMLElement;
-    let startX = 0, currentX = 0, swiping = false;
+    let startX = 0, currentX = 0, swiping = false, didMove = false;
 
     const onStart = (clientX: number) => {
       startX = clientX;
       currentX = 0;
       swiping = true;
+      didMove = false;
       inner.style.transition = 'none';
     };
 
     const onMove = (clientX: number) => {
       if (!swiping) return;
       currentX = clientX - startX;
+      if (Math.abs(currentX) > 5) didMove = true;
       if (currentX > 0) currentX = 0; // Only swipe left
       inner.style.transform = `translateX(${currentX}px)`;
     };
@@ -351,6 +368,12 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
         }
       } else {
         inner.style.transform = 'translateX(0)';
+        // Tap (no significant movement) = edit
+        if (!didMove) {
+          const mealId = parseInt(el.dataset.id || '0');
+          const meal = mealList.find((m) => m.id === mealId);
+          if (meal) showEditMealModal(meal, date);
+        }
       }
     };
 
@@ -363,4 +386,169 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
     document.addEventListener('mousemove', (e) => { if (swiping) onMove(e.clientX); });
     document.addEventListener('mouseup', () => { if (swiping) onEnd(); });
   });
+}
+
+function showEditMealModal(meal: MealLog, date: string) {
+  const modal = document.getElementById('edit-meal-modal')!;
+  const name = meal.food_name || meal.recipe_name || meal.note || 'Quick entry';
+  document.getElementById('edit-meal-name')!.textContent = name;
+
+  const body = document.getElementById('edit-meal-body')!;
+  const hasFoodRef = meal.food_id || meal.recipe_id;
+
+  // For food/recipe-based entries, show per-unit macros and servings control
+  // For quick entries, show editable macro fields
+  const perUnitCal = meal.servings ? meal.calories / meal.servings : meal.calories;
+  const perUnitC = meal.servings ? meal.carbs_g / meal.servings : meal.carbs_g;
+  const perUnitP = meal.servings ? meal.protein_g / meal.servings : meal.protein_g;
+  const perUnitF = meal.servings ? meal.fat_g / meal.servings : meal.fat_g;
+
+  if (hasFoodRef) {
+    body.innerHTML = `
+      ${meal.food_brand ? `<p class="food-brand">${meal.food_brand}</p>` : ''}
+      <div class="modal-macros">
+        <div class="modal-macro"><strong>${Math.round(perUnitCal)}</strong> kcal</div>
+        <div class="modal-macro"><strong>${Math.round(perUnitC * 10) / 10}g</strong> carbs</div>
+        <div class="modal-macro"><strong>${Math.round(perUnitP * 10) / 10}g</strong> protein</div>
+        <div class="modal-macro"><strong>${Math.round(perUnitF * 10) / 10}g</strong> fat</div>
+      </div>
+      <p class="text-muted">Per serving</p>
+      <div class="form-group">
+        <label for="edit-servings">Servings</label>
+        <div class="servings-control">
+          <button type="button" id="edit-serv-minus" class="btn-icon">-</button>
+          <input type="number" id="edit-servings" value="${meal.servings}" min="0.25" step="0.25" />
+          <button type="button" id="edit-serv-plus" class="btn-icon">+</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="edit-meal-type">Meal</label>
+        <select id="edit-meal-type">
+          <option value="breakfast" ${meal.meal_type === 'breakfast' ? 'selected' : ''}>Breakfast</option>
+          <option value="lunch" ${meal.meal_type === 'lunch' ? 'selected' : ''}>Lunch</option>
+          <option value="dinner" ${meal.meal_type === 'dinner' ? 'selected' : ''}>Dinner</option>
+          <option value="snack" ${meal.meal_type === 'snack' ? 'selected' : ''}>Snack</option>
+        </select>
+      </div>
+      <div class="modal-total" id="edit-total">
+        <span>${Math.round(meal.calories)} kcal</span>
+        <span>${Math.round(meal.carbs_g * 10) / 10}g C</span>
+        <span>${Math.round(meal.protein_g * 10) / 10}g P</span>
+        <span>${Math.round(meal.fat_g * 10) / 10}g F</span>
+      </div>
+      <div class="form-row">
+        <button type="button" id="edit-save-btn" class="btn btn-primary" style="flex:1">Save</button>
+        <button type="button" id="edit-delete-btn" class="btn btn-danger" style="flex:0 0 auto">Delete</button>
+      </div>
+    `;
+
+    const servingsInput = document.getElementById('edit-servings') as HTMLInputElement;
+    const updateTotal = () => {
+      const s = parseFloat(servingsInput.value) || 1;
+      document.getElementById('edit-total')!.innerHTML = `
+        <span>${Math.round(perUnitCal * s)} kcal</span>
+        <span>${Math.round(perUnitC * s * 10) / 10}g C</span>
+        <span>${Math.round(perUnitP * s * 10) / 10}g P</span>
+        <span>${Math.round(perUnitF * s * 10) / 10}g F</span>
+      `;
+    };
+    servingsInput.addEventListener('input', updateTotal);
+    document.getElementById('edit-serv-minus')!.addEventListener('click', () => {
+      servingsInput.value = String(Math.max(0.25, (parseFloat(servingsInput.value) || 1) - 0.25));
+      updateTotal();
+    });
+    document.getElementById('edit-serv-plus')!.addEventListener('click', () => {
+      servingsInput.value = String((parseFloat(servingsInput.value) || 1) + 0.25);
+      updateTotal();
+    });
+
+    document.getElementById('edit-save-btn')!.addEventListener('click', async () => {
+      const s = parseFloat(servingsInput.value) || 1;
+      const mealType = (document.getElementById('edit-meal-type') as HTMLSelectElement).value;
+      const btn = document.getElementById('edit-save-btn') as HTMLButtonElement;
+      btn.disabled = true;
+      try {
+        await mealsApi.update(meal.id, {
+          servings: s,
+          mealType,
+          calories: Math.round(perUnitCal * s * 10) / 10,
+          carbsG: Math.round(perUnitC * s * 10) / 10,
+          proteinG: Math.round(perUnitP * s * 10) / 10,
+          fatG: Math.round(perUnitF * s * 10) / 10,
+        });
+        modal.classList.add('hidden');
+        loadMeals(date);
+      } catch {
+        btn.disabled = false;
+        btn.textContent = 'Failed - Retry';
+      }
+    });
+  } else {
+    // Quick entry — editable macros
+    body.innerHTML = `
+      <div class="form-group">
+        <label for="edit-meal-type">Meal</label>
+        <select id="edit-meal-type">
+          <option value="breakfast" ${meal.meal_type === 'breakfast' ? 'selected' : ''}>Breakfast</option>
+          <option value="lunch" ${meal.meal_type === 'lunch' ? 'selected' : ''}>Lunch</option>
+          <option value="dinner" ${meal.meal_type === 'dinner' ? 'selected' : ''}>Dinner</option>
+          <option value="snack" ${meal.meal_type === 'snack' ? 'selected' : ''}>Snack</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="edit-carbs">Carbs (g)</label>
+          <input type="number" id="edit-carbs" value="${meal.carbs_g}" min="0" step="0.1" />
+        </div>
+        <div class="form-group">
+          <label for="edit-protein">Protein (g)</label>
+          <input type="number" id="edit-protein" value="${meal.protein_g}" min="0" step="0.1" />
+        </div>
+        <div class="form-group">
+          <label for="edit-fat">Fat (g)</label>
+          <input type="number" id="edit-fat" value="${meal.fat_g}" min="0" step="0.1" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="edit-cal">Calories</label>
+        <input type="number" id="edit-cal" value="${meal.calories}" min="0" step="1" />
+      </div>
+      <div class="form-row">
+        <button type="button" id="edit-save-btn" class="btn btn-primary" style="flex:1">Save</button>
+        <button type="button" id="edit-delete-btn" class="btn btn-danger" style="flex:0 0 auto">Delete</button>
+      </div>
+    `;
+
+    document.getElementById('edit-save-btn')!.addEventListener('click', async () => {
+      const btn = document.getElementById('edit-save-btn') as HTMLButtonElement;
+      btn.disabled = true;
+      try {
+        await mealsApi.update(meal.id, {
+          mealType: (document.getElementById('edit-meal-type') as HTMLSelectElement).value,
+          calories: parseFloat((document.getElementById('edit-cal') as HTMLInputElement).value) || 0,
+          carbsG: parseFloat((document.getElementById('edit-carbs') as HTMLInputElement).value) || 0,
+          proteinG: parseFloat((document.getElementById('edit-protein') as HTMLInputElement).value) || 0,
+          fatG: parseFloat((document.getElementById('edit-fat') as HTMLInputElement).value) || 0,
+        });
+        modal.classList.add('hidden');
+        loadMeals(date);
+      } catch {
+        btn.disabled = false;
+        btn.textContent = 'Failed - Retry';
+      }
+    });
+  }
+
+  // Delete button (shared)
+  document.getElementById('edit-delete-btn')!.addEventListener('click', async () => {
+    if (confirm('Remove this entry?')) {
+      try {
+        await mealsApi.delete(meal.id);
+        modal.classList.add('hidden');
+        loadMeals(date);
+      } catch { /* ignore */ }
+    }
+  });
+
+  modal.classList.remove('hidden');
 }

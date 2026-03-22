@@ -151,6 +151,12 @@ export const meals = {
       body: JSON.stringify(data),
     }),
 
+  update: (id: number, data: { servings?: number; mealType?: string; calories?: number; carbsG?: number; proteinG?: number; fatG?: number }) =>
+    request<{ meal: MealLog }>(`/meals/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
   delete: (id: number) =>
     request<{ success: boolean }>(`/meals/${id}`, { method: 'DELETE' }),
 
