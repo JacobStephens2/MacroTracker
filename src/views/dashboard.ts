@@ -298,7 +298,7 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
       for (const item of items) {
         const name = item.food_name || item.recipe_name || item.note || 'Quick entry';
         const brand = item.food_brand ? `<span class="food-brand">${item.food_brand}</span>` : '';
-        const servingsLabel = item.servings !== 1 ? `${item.servings}x ` : '';
+        const servingsLabel = item.servings !== 1 ? `${parseFloat(item.servings.toFixed(2))}x ` : '';
         html += `
           <div class="meal-item-wrapper" data-id="${item.id}">
             <div class="meal-item-swipe-bg">Delete</div>
