@@ -84,6 +84,12 @@ export function dashboardView() {
           <div class="loading-spinner">Loading...</div>
         </div>
 
+        <div class="dashboard-legend">
+          <p><span class="legend-swatch swatch-on-track"></span> On track — meal is 90%+ of per-meal target (daily / 4)</p>
+          <p><span class="legend-swatch swatch-partial"></span> Partial — meal is 50-90% of per-meal target</p>
+          <p><span class="legend-swatch swatch-low"></span> Low — meal is under 50% of per-meal target</p>
+        </div>
+
         <div id="edit-meal-modal" class="modal hidden">
           <div class="modal-content">
             <div class="modal-header">

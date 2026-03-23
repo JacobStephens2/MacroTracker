@@ -534,6 +534,31 @@ input, button, select, textarea {
   border-left: 3px solid var(--danger);
 }
 
+.dashboard-legend {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+}
+
+.dashboard-legend p {
+  margin: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+.swatch-on-track { background: var(--primary); }
+.swatch-partial { background: var(--fat-color); }
+.swatch-low { background: var(--danger); }
+
 .meal-item-wrapper {
   position: relative;
   overflow: hidden;
