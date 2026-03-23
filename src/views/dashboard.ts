@@ -1,7 +1,12 @@
 import { meals as mealsApi } from '../api';
-import { state, formatDate } from '../state';
+import { state, formatDate, todayStr } from '../state';
 import { navigate } from '../router';
 import type { MealLog, MealType } from '../types';
+
+function formatDateSub(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
 
 const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 const MEAL_LABELS: Record<MealType, string> = {
@@ -23,7 +28,10 @@ export function dashboardView() {
 
         <div class="date-nav">
           <button id="date-prev" class="btn-icon" aria-label="Previous day">&larr;</button>
-          <button id="date-label" class="date-label">${formatDate(date)}</button>
+          <div class="date-display">
+            <button id="date-label" class="date-label">${formatDate(date)}</button>
+            <span id="date-sub" class="date-sub">${formatDateSub(date)}</span>
+          </div>
           <button id="date-next" class="btn-icon" aria-label="Next day">&rarr;</button>
         </div>
 
@@ -89,18 +97,25 @@ export function dashboardView() {
     `,
     init: () => {
       // Date navigation
+      const refreshDate = () => {
+        document.getElementById('date-label')!.textContent = formatDate(state.selectedDate);
+        document.getElementById('date-sub')!.textContent = formatDateSub(state.selectedDate);
+        document.getElementById('date-next')!.classList.toggle('invisible', state.selectedDate >= todayStr());
+        loadMeals(state.selectedDate);
+      };
+
       document.getElementById('date-prev')!.addEventListener('click', () => {
         const d = new Date(state.selectedDate + 'T12:00:00');
         d.setDate(d.getDate() - 1);
         state.selectedDate = d.toISOString().slice(0, 10);
-        navigate('#/');
+        refreshDate();
       });
 
       document.getElementById('date-next')!.addEventListener('click', () => {
         const d = new Date(state.selectedDate + 'T12:00:00');
         d.setDate(d.getDate() + 1);
         state.selectedDate = d.toISOString().slice(0, 10);
-        navigate('#/');
+        refreshDate();
       });
 
       document.getElementById('date-label')!.addEventListener('click', () => {
@@ -114,7 +129,7 @@ export function dashboardView() {
         input.addEventListener('change', () => {
           if (input.value) {
             state.selectedDate = input.value;
-            navigate('#/');
+            refreshDate();
           }
           input.remove();
         });
