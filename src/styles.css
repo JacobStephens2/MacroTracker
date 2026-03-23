@@ -728,6 +728,13 @@ input.searching,
 
 .scanner-container video { width: 100%; }
 
+.scanner-toolbar {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  background: #000;
+}
+
 /* ===== TABS ===== */
 .tab-bar {
   display: flex;

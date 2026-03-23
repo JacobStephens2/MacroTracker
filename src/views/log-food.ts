@@ -99,17 +99,66 @@ export function logFoodView() {
           try {
             const { Html5Qrcode } = await import('html5-qrcode');
             scannerInstance = new Html5Qrcode('scanner-video');
+
+            // Use wider scan region for barcodes
+            const scanWidth = Math.min(window.innerWidth - 40, 300);
+
             await scannerInstance.start(
               { facingMode: 'environment' },
-              { fps: 10, qrbox: { width: 250, height: 150 } },
+              {
+                fps: 15,
+                qrbox: { width: scanWidth, height: 150 },
+                aspectRatio: 1.777778,
+              },
               async (decodedText: string) => {
                 await scannerInstance.stop();
                 scannerInstance = null;
                 container.classList.add('hidden');
+                // Remove torch button on close
+                container.querySelector('.scanner-toolbar')?.remove();
                 lookupBarcode(decodedText, mealType, date);
               },
               () => {} // Ignore scan failures
             );
+
+            // Apply continuous autofocus + higher resolution to help lock on barcodes
+            try {
+              const videoEl = document.querySelector('#scanner-video video') as HTMLVideoElement;
+              const track = videoEl?.srcObject instanceof MediaStream
+                ? videoEl.srcObject.getVideoTracks()[0]
+                : null;
+              if (track) {
+                const caps = track.getCapabilities() as any;
+                const advanced: any[] = [];
+                if (caps.focusMode?.includes('continuous')) {
+                  advanced.push({ focusMode: 'continuous' });
+                }
+                if (caps.zoom && caps.zoom.min < caps.zoom.max) {
+                  // Slight zoom (1.5x or min viable) helps camera focus at close range
+                  const targetZoom = Math.min(1.5, caps.zoom.max);
+                  advanced.push({ zoom: targetZoom });
+                }
+                if (advanced.length > 0) {
+                  await track.applyConstraints({ advanced });
+                }
+
+                // Add torch toggle if supported
+                if (caps.torch) {
+                  const toolbar = document.createElement('div');
+                  toolbar.className = 'scanner-toolbar';
+                  toolbar.innerHTML = `<button id="torch-btn" class="btn btn-sm btn-outline">Flashlight</button>`;
+                  container.insertBefore(toolbar, container.querySelector('#scanner-close'));
+                  let torchOn = false;
+                  document.getElementById('torch-btn')!.addEventListener('click', async () => {
+                    torchOn = !torchOn;
+                    await track.applyConstraints({ advanced: [{ torch: torchOn } as any] });
+                    document.getElementById('torch-btn')!.textContent = torchOn ? 'Flashlight Off' : 'Flashlight';
+                  });
+                }
+              }
+            } catch {
+              // Focus/torch enhancement failed — scanner still works
+            }
           } catch (err) {
             container.innerHTML = `<p class="form-error">Camera access denied or not available.</p>
               <button id="scanner-close" class="btn btn-sm">Close</button>`;

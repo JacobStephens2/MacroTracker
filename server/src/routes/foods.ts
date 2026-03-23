@@ -25,7 +25,7 @@ async function getFatSecretToken(): Promise<string | null> {
       'Authorization': `Basic ${credentials}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: 'grant_type=client_credentials&scope=basic',
+    body: 'grant_type=client_credentials&scope=premier barcode',
     signal: AbortSignal.timeout(5000),
   });
 
@@ -369,12 +369,73 @@ async function searchUSDA(query: string): Promise<any[]> {
   }
 }
 
-// Helper: search FatSecret (v1 basic scope — parses description string)
+// Helper: get structured food details from FatSecret (premier food.get.v4)
+async function getFatSecretFood(token: string, foodId: string): Promise<any | null> {
+  try {
+    const url = `https://platform.fatsecret.com/rest/server.api?method=food.get.v4&food_id=${foodId}&format=json`;
+    const response = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const food = data.food;
+    if (!food) return null;
+
+    const servings = Array.isArray(food.servings?.serving)
+      ? food.servings.serving
+      : food.servings?.serving ? [food.servings.serving] : [];
+
+    // Use first serving as default
+    const defaultServing = servings[0];
+    if (!defaultServing) return null;
+
+    const servingSize = parseFloat(defaultServing.metric_serving_amount) || 100;
+    const servingUnit = defaultServing.metric_serving_unit || 'g';
+
+    // Build measures array from all servings
+    const measures: { label: string; gramWeight: number }[] = [];
+    for (const s of servings) {
+      const label = s.serving_description;
+      const grams = s.metric_serving_unit === 'g'
+        ? parseFloat(s.metric_serving_amount)
+        : s.metric_serving_unit === 'oz'
+          ? parseFloat(s.metric_serving_amount) * 28.3495
+          : parseFloat(s.metric_serving_amount);
+      if (label && grams) {
+        measures.push({ label, gramWeight: Math.round(grams * 10) / 10 });
+      }
+    }
+
+    return {
+      name: food.food_name || 'Unknown',
+      brand: food.brand_name || null,
+      barcode: null,
+      servingSize,
+      servingUnit,
+      calories: Math.round(parseFloat(defaultServing.calories) || 0),
+      carbsG: Math.round((parseFloat(defaultServing.carbohydrate) || 0) * 10) / 10,
+      proteinG: Math.round((parseFloat(defaultServing.protein) || 0) * 10) / 10,
+      fatG: Math.round((parseFloat(defaultServing.fat) || 0) * 10) / 10,
+      fiberG: Math.round((parseFloat(defaultServing.fiber) || 0) * 10) / 10,
+      sugarG: Math.round((parseFloat(defaultServing.sugar) || 0) * 10) / 10,
+      source: 'fatsecret',
+      sourceId: String(food.food_id),
+      measures: measures.length > 0 ? measures : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Helper: search FatSecret (premier scope — structured nutrition via food.get.v4)
 async function searchFatSecret(query: string): Promise<any[]> {
   try {
     const token = await getFatSecretToken();
     if (!token) return [];
 
+    // Step 1: search for food IDs
     const url = `https://platform.fatsecret.com/rest/server.api?method=foods.search&search_expression=${encodeURIComponent(query)}&max_results=10&format=json`;
     const response = await fetch(url, {
       headers: { 'Authorization': `Bearer ${token}` },
@@ -386,43 +447,61 @@ async function searchFatSecret(query: string): Promise<any[]> {
     const foods = data.foods?.food;
     if (!foods || !Array.isArray(foods)) return [];
 
-    return foods.map((f: any) => {
-      // Description format: "Per 101g - Calories: 197kcal | Fat: 7.79g | Carbs: 0.00g | Protein: 29.80g"
-      const desc = f.food_description || '';
-      const servingMatch = desc.match(/^Per\s+([\d.]+)(g|ml|oz)/i);
-      const servingSize = servingMatch ? parseFloat(servingMatch[1]) : 100;
-      const servingUnit = servingMatch ? servingMatch[2] : 'g';
+    // Step 2: fetch structured details for each food in parallel
+    const details = await Promise.allSettled(
+      foods.map((f: any) => getFatSecretFood(token, f.food_id))
+    );
 
-      const getVal = (label: string) => {
-        const m = desc.match(new RegExp(`${label}:\\s*([\\d.]+)`));
-        return m ? parseFloat(m[1]) : 0;
-      };
-
-      return {
-        name: f.food_name || 'Unknown',
-        brand: f.brand_name || null,
-        barcode: null,
-        servingSize,
-        servingUnit,
-        calories: Math.round(getVal('Calories')),
-        carbsG: Math.round(getVal('Carbs') * 10) / 10,
-        proteinG: Math.round(getVal('Protein') * 10) / 10,
-        fatG: Math.round(getVal('Fat') * 10) / 10,
-        fiberG: Math.round(getVal('Fiber') * 10) / 10,
-        sugarG: Math.round(getVal('Sugar') * 10) / 10,
-        source: 'fatsecret',
-        sourceId: String(f.food_id),
-      };
-    });
+    return details
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value != null)
+      .map(r => r.value);
   } catch {
     return [];
   }
 }
 
-// Helper: barcode lookup via FatSecret (requires barcode scope — gracefully skipped if unavailable)
-async function barcodeFatSecret(_code: string): Promise<any | null> {
-  // Barcode lookup requires the paid 'barcode' scope; return null to fall through
-  return null;
+// Helper: barcode lookup via FatSecret (premier barcode scope)
+async function barcodeFatSecret(code: string): Promise<any | null> {
+  try {
+    const token = await getFatSecretToken();
+    if (!token) return null;
+
+    // Step 1: find food_id for barcode
+    const findUrl = `https://platform.fatsecret.com/rest/server.api?method=food.find_id_for_barcode&barcode=${encodeURIComponent(code)}&format=json`;
+    const findResponse = await fetch(findUrl, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!findResponse.ok) return null;
+
+    const findData = await findResponse.json();
+    const foodId = findData.food_id?.value;
+    if (!foodId) return null;
+
+    // Step 2: get structured nutrition details
+    const f = await getFatSecretFood(token, foodId);
+    if (!f) return null;
+
+    // Return snake_case fields to match barcode route's DB insert
+    return {
+      name: f.name,
+      brand: f.brand,
+      barcode: code,
+      serving_size: f.servingSize,
+      serving_unit: f.servingUnit,
+      calories: f.calories,
+      carbs_g: f.carbsG,
+      protein_g: f.proteinG,
+      fat_g: f.fatG,
+      fiber_g: f.fiberG,
+      sugar_g: f.sugarG,
+      source: 'fatsecret',
+      source_id: f.sourceId,
+      measures: f.measures,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export default router;
