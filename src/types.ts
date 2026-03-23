@@ -69,6 +69,7 @@ export interface MealLog {
   food_brand: string | null;
   serving_size: number | null;
   serving_unit: string | null;
+  unit_label: string | null;
   recipe_name: string | null;
 }
 
@@ -113,6 +114,7 @@ export interface RecipeIngredient {
 export interface WeightLog {
   id: number;
   date: string;
+  time: string;
   weight_lbs: number;
   notes: string | null;
 }

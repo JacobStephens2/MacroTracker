@@ -106,6 +106,7 @@ function initSchema() {
       protein_g REAL NOT NULL DEFAULT 0,
       fat_g REAL NOT NULL DEFAULT 0,
       note TEXT,
+      unit_label TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -113,10 +114,11 @@ function initSchema() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id),
       date TEXT NOT NULL,
+      time TEXT NOT NULL DEFAULT '',
       weight_lbs REAL NOT NULL,
       notes TEXT,
       created_at TEXT DEFAULT (datetime('now')),
-      UNIQUE(user_id, date)
+      UNIQUE(user_id, date, time)
     );
 
     CREATE INDEX IF NOT EXISTS idx_meal_logs_user_date ON meal_logs(user_id, date);
@@ -140,6 +142,35 @@ function initSchema() {
       ALTER TABLE recipe_ingredients ADD COLUMN qty REAL;
       ALTER TABLE recipe_ingredients ADD COLUMN unit_label TEXT;
     `);
+  }
+
+  // Migration: add time column to weight_logs and update unique constraint
+  const weightCols = db.prepare("PRAGMA table_info(weight_logs)").all() as any[];
+  const weightColNames = weightCols.map((c: any) => c.name);
+  if (!weightColNames.includes('time')) {
+    db.exec(`
+      CREATE TABLE weight_logs_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        date TEXT NOT NULL,
+        time TEXT NOT NULL DEFAULT '',
+        weight_lbs REAL NOT NULL,
+        notes TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(user_id, date, time)
+      );
+      INSERT INTO weight_logs_new (id, user_id, date, time, weight_lbs, notes, created_at)
+        SELECT id, user_id, date, '', weight_lbs, notes, created_at FROM weight_logs;
+      DROP TABLE weight_logs;
+      ALTER TABLE weight_logs_new RENAME TO weight_logs;
+      CREATE INDEX IF NOT EXISTS idx_weight_logs_user_date ON weight_logs(user_id, date);
+    `);
+  }
+
+  const mealCols = db.prepare("PRAGMA table_info(meal_logs)").all() as any[];
+  const mealColNames = mealCols.map((c: any) => c.name);
+  if (!mealColNames.includes('unit_label')) {
+    db.exec("ALTER TABLE meal_logs ADD COLUMN unit_label TEXT");
   }
 
   const cols = db.prepare("PRAGMA table_info(recipes)").all() as any[];

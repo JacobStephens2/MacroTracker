@@ -200,6 +200,7 @@ export const localMeals = {
     proteinG?: number;
     fatG?: number;
     note?: string;
+    unitLabel?: string;
   }): Promise<{ meal: MealLog }> => {
     const meals = getStore<MealLog[]>('guest_meals', []);
     const servings = data.servings || 1;
@@ -257,6 +258,7 @@ export const localMeals = {
       food_brand,
       serving_size,
       serving_unit,
+      unit_label: data.unitLabel || null,
       recipe_name,
     };
     meals.push(meal);
@@ -291,6 +293,7 @@ export const localMeals = {
       food_brand: null,
       serving_size: null,
       serving_unit: null,
+      unit_label: null,
       recipe_name: null,
     };
     meals.push(meal);
@@ -528,17 +531,23 @@ export const localRecipes = {
 export const localWeight = {
   list: async (limit?: number): Promise<{ logs: WeightLog[] }> => {
     let logs = getStore<WeightLog[]>('guest_weight', []);
-    logs.sort((a, b) => b.date.localeCompare(a.date));
+    logs.sort((a, b) => {
+      const cmp = b.date.localeCompare(a.date);
+      if (cmp !== 0) return cmp;
+      return (b.time || '').localeCompare(a.time || '');
+    });
     if (limit) logs = logs.slice(0, limit);
     return { logs };
   },
 
-  log: async (date: string, weightLbs: number, notes?: string): Promise<{ log: WeightLog }> => {
+  log: async (date: string, weightLbs: number, time?: string, notes?: string): Promise<{ log: WeightLog }> => {
     const logs = getStore<WeightLog[]>('guest_weight', []);
-    const existing = logs.findIndex((l) => l.date === date);
+    const timeVal = time || '';
+    const existing = logs.findIndex((l) => l.date === date && (l.time || '') === timeVal);
     const log: WeightLog = {
       id: existing >= 0 ? logs[existing].id : nextId(),
       date,
+      time: timeVal,
       weight_lbs: weightLbs,
       notes: notes || null,
     };

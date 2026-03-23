@@ -212,6 +212,7 @@ export const meals = {
     proteinG?: number;
     fatG?: number;
     note?: string;
+    unitLabel?: string;
   }) =>
     isGuestMode()
       ? localMeals.log(data)
@@ -313,12 +314,12 @@ export const weight = {
       ? localWeight.list(limit)
       : request<{ logs: WeightLog[] }>(`/weight${limit ? `?limit=${limit}` : ''}`),
 
-  log: (date: string, weightLbs: number, notes?: string) =>
+  log: (date: string, weightLbs: number, time?: string, notes?: string) =>
     isGuestMode()
-      ? localWeight.log(date, weightLbs, notes)
+      ? localWeight.log(date, weightLbs, time, notes)
       : request<{ log: WeightLog }>('/weight', {
           method: 'POST',
-          body: JSON.stringify({ date, weightLbs, notes }),
+          body: JSON.stringify({ date, weightLbs, time, notes }),
         }),
 
   delete: (id: number) =>

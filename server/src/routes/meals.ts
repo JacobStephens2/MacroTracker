@@ -47,7 +47,7 @@ router.get('/totals/:startDate/:endDate', requireAuth, (req: Request, res: Respo
 router.post('/', requireAuth, (req: Request, res: Response) => {
   try {
     const db = getDb();
-    const { date, mealType, foodId, recipeId, servings, calories, carbsG, proteinG, fatG, note } = req.body;
+    const { date, mealType, foodId, recipeId, servings, calories, carbsG, proteinG, fatG, note, unitLabel } = req.body;
 
     if (!date || !mealType) {
       res.status(400).json({ error: 'Date and meal type are required' });
@@ -112,15 +112,16 @@ router.post('/', requireAuth, (req: Request, res: Response) => {
     }
 
     const result = db.prepare(`
-      INSERT INTO meal_logs (user_id, date, meal_type, food_id, recipe_id, servings, calories, carbs_g, protein_g, fat_g, note)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO meal_logs (user_id, date, meal_type, food_id, recipe_id, servings, calories, carbs_g, protein_g, fat_g, note, unit_label)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(req.user!.userId, date, mealType, foodId || null, recipeId || null,
            finalServings,
            Math.round(finalCalories * 10) / 10,
            Math.round(finalCarbs * 10) / 10,
            Math.round(finalProtein * 10) / 10,
            Math.round(finalFat * 10) / 10,
-           note || null);
+           note || null,
+           unitLabel || null);
 
     const meal = db.prepare(`
       SELECT m.*, f.name as food_name, f.brand as food_brand, f.serving_size, f.serving_unit,

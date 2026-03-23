@@ -427,9 +427,9 @@ function showEditMealModal(meal: MealLog, date: string) {
         <div class="modal-macro"><strong>${Math.round(perUnitP * 10) / 10}g</strong> protein</div>
         <div class="modal-macro"><strong>${Math.round(perUnitF * 10) / 10}g</strong> fat</div>
       </div>
-      <p class="text-muted">Per serving</p>
+      <p class="text-muted">Per ${meal.unit_label || (meal.serving_size && meal.serving_unit ? `${meal.serving_size}${meal.serving_unit}` : 'serving')}</p>
       <div class="form-group">
-        <label for="edit-servings">Servings</label>
+        <label for="edit-servings">${meal.unit_label ? meal.unit_label : 'Servings'}</label>
         <div class="servings-control">
           <button type="button" id="edit-serv-minus" class="btn-icon">-</button>
           <input type="number" id="edit-servings" value="${meal.servings}" min="0.25" step="0.25" />

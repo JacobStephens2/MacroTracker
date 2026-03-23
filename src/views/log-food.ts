@@ -44,6 +44,13 @@ export function logFoodView() {
           <div class="loading-spinner">Search for a food above</div>
         </div>
 
+        <div class="api-legend">
+          <span class="legend-label">Sources:</span>
+          <span class="legend-item"><span class="food-source source-fatsecret">FatSecret</span> FatSecret Platform</span>
+          <span class="legend-item"><span class="food-source source-usda">USDA</span> USDA FoodData Central</span>
+          <span class="legend-item"><span class="food-source source-openfoodfacts">OFF</span> Open Food Facts</span>
+        </div>
+
         <div id="food-detail-modal" class="modal hidden">
           <div class="modal-content">
             <div class="modal-header">
@@ -349,11 +356,15 @@ function renderExternalList(container: HTMLElement, items: ExternalFood[], mealT
   for (const item of items) {
     const el = document.createElement('div');
     el.className = 'food-item';
+    const sourceLabel = item.source === 'fatsecret' ? 'FatSecret'
+      : item.source === 'usda' ? 'USDA'
+      : item.source === 'openfoodfacts' ? 'OFF'
+      : item.source;
     el.innerHTML = `
       <div class="food-item-info">
         <span class="food-item-name">${item.name}</span>
         ${item.brand ? `<span class="food-brand">${item.brand}</span>` : ''}
-        <span class="food-serving">${item.servingSize}${item.servingUnit}</span>
+        <span class="food-serving">${item.servingSize}${item.servingUnit} · <span class="food-source source-${item.source}">${sourceLabel}</span></span>
       </div>
       <div class="food-item-macros">
         <span class="macro-chip chip-calories">${Math.round(item.calories)}</span>
@@ -528,8 +539,15 @@ function showAddModal(food: Food, mealType: MealType, date: string) {
     btn.disabled = true;
     btn.textContent = 'Adding...';
 
+    // Determine the unit label if a non-default measure was selected
+    let unitLabel: string | undefined;
+    if (unitSelect && unitSelect.value !== 'default') {
+      const m = measures[parseInt(unitSelect.value)];
+      unitLabel = m.label;
+    }
+
     try {
-      await mealsApi.log({ date, mealType, foodId: food.id, servings: effectiveServings });
+      await mealsApi.log({ date, mealType, foodId: food.id, servings: effectiveServings, unitLabel });
       closeModal();
       navigate('#/');
     } catch {

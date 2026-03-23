@@ -662,6 +662,53 @@ input, button, select, textarea {
   color: var(--text-secondary);
 }
 
+.food-source {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.source-fatsecret {
+  background: #2b6e2b;
+  color: #c8f0c8;
+}
+
+.source-usda {
+  background: #2b4a6e;
+  color: #c8ddf0;
+}
+
+.source-openfoodfacts {
+  background: #6e5a2b;
+  color: #f0e4c8;
+}
+
+.api-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+}
+
+.legend-label {
+  font-weight: 600;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 .food-item-macros {
   display: flex;
   gap: 3px;
