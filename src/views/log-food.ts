@@ -1,11 +1,12 @@
 import { foods as foodsApi, meals as mealsApi, recipes as recipesApi } from '../api';
 import { navigate, getQueryParams, setCleanup } from '../router';
+import { toLocalDateStr } from '../state';
 import type { Food, ExternalFood, FoodMeasure, Recipe, MealType } from '../types';
 
 export function logFoodView() {
   const params = getQueryParams();
   const mealType = (params.meal || 'snack') as MealType;
-  const date = params.date || new Date().toISOString().slice(0, 10);
+  const date = params.date || toLocalDateStr();
 
   return {
     html: `

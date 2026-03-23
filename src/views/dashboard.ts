@@ -1,5 +1,5 @@
 import { meals as mealsApi } from '../api';
-import { state, formatDate, todayStr } from '../state';
+import { state, formatDate, todayStr, toLocalDateStr } from '../state';
 import { navigate } from '../router';
 import type { MealLog, MealType } from '../types';
 
@@ -107,14 +107,14 @@ export function dashboardView() {
       document.getElementById('date-prev')!.addEventListener('click', () => {
         const d = new Date(state.selectedDate + 'T12:00:00');
         d.setDate(d.getDate() - 1);
-        state.selectedDate = d.toISOString().slice(0, 10);
+        state.selectedDate = toLocalDateStr(d);
         refreshDate();
       });
 
       document.getElementById('date-next')!.addEventListener('click', () => {
         const d = new Date(state.selectedDate + 'T12:00:00');
         d.setDate(d.getDate() + 1);
-        state.selectedDate = d.toISOString().slice(0, 10);
+        state.selectedDate = toLocalDateStr(d);
         refreshDate();
       });
 

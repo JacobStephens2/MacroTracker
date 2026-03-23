@@ -8,9 +8,13 @@ interface AppState {
 
 const listeners: (() => void)[] = [];
 
+export function toLocalDateStr(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export const state: AppState = {
   user: null,
-  selectedDate: new Date().toISOString().slice(0, 10),
+  selectedDate: toLocalDateStr(),
   loading: true,
 };
 
@@ -29,17 +33,16 @@ export function onStateChange(fn: () => void) {
 
 export function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00');
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
-  const yesterday = new Date(today);
+  const today = toLocalDateStr();
+  const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+  const yesterdayString = toLocalDateStr(yesterday);
 
-  if (dateStr === todayStr) return 'Today';
-  if (dateStr === yesterdayStr) return 'Yesterday';
+  if (dateStr === today) return 'Today';
+  if (dateStr === yesterdayString) return 'Yesterday';
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 export function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateStr();
 }
