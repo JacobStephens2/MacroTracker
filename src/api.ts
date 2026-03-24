@@ -213,6 +213,7 @@ export const meals = {
     fatG?: number;
     note?: string;
     unitLabel?: string;
+    unitScale?: number;
   }) =>
     isGuestMode()
       ? localMeals.log(data)
@@ -305,6 +306,11 @@ export const recipes = {
 
   delete: (id: number) =>
     isGuestMode() ? localRecipes.delete(id) : request<{ success: boolean }>(`/recipes/${id}`, { method: 'DELETE' }),
+
+  copy: (id: number) =>
+    isGuestMode()
+      ? localRecipes.copy(id)
+      : request<{ recipe: { id: number } }>(`/recipes/${id}/copy`, { method: 'POST' }),
 };
 
 // Weight

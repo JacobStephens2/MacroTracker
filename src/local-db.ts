@@ -201,6 +201,7 @@ export const localMeals = {
     fatG?: number;
     note?: string;
     unitLabel?: string;
+    unitScale?: number;
   }): Promise<{ meal: MealLog }> => {
     const meals = getStore<MealLog[]>('guest_meals', []);
     const servings = data.servings || 1;
@@ -259,6 +260,7 @@ export const localMeals = {
       serving_size,
       serving_unit,
       unit_label: data.unitLabel || null,
+      unit_scale: data.unitScale || null,
       recipe_name,
     };
     meals.push(meal);
@@ -294,6 +296,7 @@ export const localMeals = {
       serving_size: null,
       serving_unit: null,
       unit_label: null,
+      unit_scale: null,
       recipe_name: null,
     };
     meals.push(meal);
@@ -524,6 +527,30 @@ export const localRecipes = {
     delete allIngredients[id];
     setStore('guest_recipe_ingredients', allIngredients);
     return { success: true };
+  },
+
+  copy: async (id: number): Promise<{ recipe: { id: number } }> => {
+    const recipes = getStore<Recipe[]>('guest_recipes', []);
+    const original = recipes.find((r) => r.id === id);
+    if (!original) throw new Error('Recipe not found');
+    const allIngredients = getStore<Record<string, RecipeIngredient[]>>('guest_recipe_ingredients', {});
+    const origIngs = allIngredients[id] || [];
+
+    const newId = nextId();
+    const newRecipe: Recipe = {
+      ...original,
+      id: newId,
+      name: original.name + ' (Copy)',
+    };
+
+    const newIngs = origIngs.map((ing) => ({ ...ing, id: nextId() }));
+
+    recipes.push(newRecipe);
+    setStore('guest_recipes', recipes);
+    allIngredients[newId] = newIngs;
+    setStore('guest_recipe_ingredients', allIngredients);
+
+    return { recipe: { id: newId } };
   },
 };
 

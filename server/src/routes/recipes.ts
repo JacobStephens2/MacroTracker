@@ -151,6 +151,37 @@ router.put('/:id', requireAuth, (req: Request, res: Response) => {
   }
 });
 
+// Copy recipe
+router.post('/:id/copy', requireAuth, (req: Request, res: Response) => {
+  try {
+    const db = getDb();
+    const recipe = db.prepare('SELECT * FROM recipes WHERE id = ? AND user_id = ?').get(req.params.id, req.user!.userId) as any;
+    if (!recipe) {
+      res.status(404).json({ error: 'Recipe not found' });
+      return;
+    }
+
+    const result = db.prepare(
+      'INSERT INTO recipes (user_id, name, total_servings, serving_unit, manual_calories, manual_carbs_g, manual_protein_g, manual_fat_g) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      req.user!.userId, recipe.name + ' (Copy)', recipe.total_servings, recipe.serving_unit,
+      recipe.manual_calories, recipe.manual_carbs_g, recipe.manual_protein_g, recipe.manual_fat_g
+    );
+    const newId = result.lastInsertRowid;
+
+    const ingredients = db.prepare('SELECT * FROM recipe_ingredients WHERE recipe_id = ?').all(recipe.id) as any[];
+    const insert = db.prepare('INSERT INTO recipe_ingredients (recipe_id, food_id, servings, qty, unit_label) VALUES (?, ?, ?, ?, ?)');
+    for (const ing of ingredients) {
+      insert.run(newId, ing.food_id, ing.servings, ing.qty, ing.unit_label);
+    }
+
+    res.json({ recipe: { id: newId } });
+  } catch (e) {
+    console.error('Copy recipe error:', e);
+    res.status(500).json({ error: 'Failed to copy recipe' });
+  }
+});
+
 // Delete recipe
 router.delete('/:id', requireAuth, (req: Request, res: Response) => {
   const db = getDb();

@@ -539,15 +539,17 @@ function showAddModal(food: Food, mealType: MealType, date: string) {
     btn.disabled = true;
     btn.textContent = 'Adding...';
 
-    // Determine the unit label if a non-default measure was selected
+    // Determine the unit label and scale if a non-default measure was selected
     let unitLabel: string | undefined;
+    let savedUnitScale: number | undefined;
     if (unitSelect && unitSelect.value !== 'default') {
       const m = measures[parseInt(unitSelect.value)];
       unitLabel = m.label;
+      savedUnitScale = unitScale;
     }
 
     try {
-      await mealsApi.log({ date, mealType, foodId: food.id, servings: effectiveServings, unitLabel });
+      await mealsApi.log({ date, mealType, foodId: food.id, servings: effectiveServings, unitLabel, unitScale: savedUnitScale });
       closeModal();
       navigate('#/');
     } catch {

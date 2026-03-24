@@ -21,6 +21,10 @@ export function weightView() {
               <label for="weight-date">Date</label>
               <input type="date" id="weight-date" value="${todayStr()}" />
             </div>
+            <div class="form-group" style="flex:0.7">
+              <label for="weight-time">Time</label>
+              <input type="time" id="weight-time" value="${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}" />
+            </div>
             <div class="form-group" style="flex:1">
               <label for="weight-lbs">Weight (lbs)</label>
               <input type="number" id="weight-lbs" step="0.1" min="50" max="500" required />
@@ -42,13 +46,14 @@ export function weightView() {
       document.getElementById('weight-form')!.addEventListener('submit', async (e) => {
         e.preventDefault();
         const date = (document.getElementById('weight-date') as HTMLInputElement).value;
+        const time = (document.getElementById('weight-time') as HTMLInputElement).value;
         const lbs = parseFloat((document.getElementById('weight-lbs') as HTMLInputElement).value);
         if (!date || !lbs) return;
 
         const btn = (e.target as HTMLFormElement).querySelector('button') as HTMLButtonElement;
         btn.disabled = true;
         try {
-          await weightApi.log(date, lbs);
+          await weightApi.log(date, lbs, time);
           (document.getElementById('weight-lbs') as HTMLInputElement).value = '';
           loadWeightData();
         } catch {
@@ -78,10 +83,15 @@ function renderChart(logs: WeightLog[]) {
   if (!canvas) return;
 
   // Sort chronologically
-  const sorted = [...logs].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = [...logs].sort((a, b) => {
+    const cmp = a.date.localeCompare(b.date);
+    if (cmp !== 0) return cmp;
+    return (a.time || '').localeCompare(b.time || '');
+  });
   const labels = sorted.map((l) => {
     const d = new Date(l.date + 'T12:00:00');
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return l.time ? `${dateStr} ${l.time}` : dateStr;
   });
   const data = sorted.map((l) => l.weight_lbs);
 
@@ -145,9 +155,10 @@ function renderHistory(logs: WeightLog[]) {
   for (const log of logs.slice(0, 14)) {
     const d = new Date(log.date + 'T12:00:00');
     const dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeStr = log.time ? ` at ${log.time}` : '';
     html += `
       <div class="weight-entry">
-        <span class="weight-date">${dateStr}</span>
+        <span class="weight-date">${dateStr}${timeStr}</span>
         <span class="weight-value">${log.weight_lbs} lbs</span>
         <button class="btn-icon btn-delete-weight" data-id="${log.id}">&times;</button>
       </div>

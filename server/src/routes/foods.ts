@@ -40,6 +40,23 @@ async function getFatSecretToken(): Promise<string | null> {
   return fatSecretToken;
 }
 
+// Score how closely a food name matches the search query (higher = better match)
+function relevanceScore(name: string, query: string): number {
+  const n = (name || '').toLowerCase();
+  const q = query.toLowerCase();
+  if (n === q) return 100;                                    // exact match
+  if (n.startsWith(q)) return 80;                             // name starts with query
+  const words = n.split(/[\s,\-()]+/);
+  if (words.some(w => w === q)) return 70;                    // a word matches exactly
+  if (words.some(w => w.startsWith(q))) return 60;            // a word starts with query
+  if (n.includes(q)) return 40;                               // query appears somewhere in name
+  // Partial: count how many query words appear in the name
+  const qWords = q.split(/\s+/);
+  const matched = qWords.filter(qw => n.includes(qw)).length;
+  if (matched === qWords.length) return 30;                   // all query words found
+  return matched / qWords.length * 20;                        // fraction of query words found
+}
+
 // Search foods (local DB first, then APIs)
 router.get('/search', optionalAuth, async (req: Request, res: Response) => {
   try {
@@ -75,6 +92,14 @@ router.get('/search', optionalAuth, async (req: Request, res: Response) => {
     if (offResults.status === 'fulfilled') external.push(...offResults.value);
     if (usdaResults.status === 'fulfilled') external.push(...usdaResults.value);
     if (fsResults.status === 'fulfilled') external.push(...fsResults.value);
+
+    // Sort by relevance, then by source priority (FatSecret > USDA > OFF) as tiebreaker
+    const sourcePriority: Record<string, number> = { fatsecret: 0, usda: 1, openfoodfacts: 2 };
+    external.sort((a, b) => {
+      const rel = relevanceScore(b.name, query) - relevanceScore(a.name, query);
+      if (rel !== 0) return rel;
+      return (sourcePriority[a.source] ?? 9) - (sourcePriority[b.source] ?? 9);
+    });
 
     res.json({ foods: local, external });
   } catch (e) {

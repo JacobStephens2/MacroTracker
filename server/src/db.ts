@@ -107,6 +107,7 @@ function initSchema() {
       fat_g REAL NOT NULL DEFAULT 0,
       note TEXT,
       unit_label TEXT,
+      unit_scale REAL,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -171,6 +172,9 @@ function initSchema() {
   const mealColNames = mealCols.map((c: any) => c.name);
   if (!mealColNames.includes('unit_label')) {
     db.exec("ALTER TABLE meal_logs ADD COLUMN unit_label TEXT");
+  }
+  if (!mealColNames.includes('unit_scale')) {
+    db.exec("ALTER TABLE meal_logs ADD COLUMN unit_scale REAL");
   }
 
   const cols = db.prepare("PRAGMA table_info(recipes)").all() as any[];

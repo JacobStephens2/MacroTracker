@@ -125,6 +125,7 @@ export function recipeEditView(params: Record<string, string>) {
           <div id="recipe-totals" class="recipe-totals"></div>
 
           <button type="submit" class="btn btn-primary btn-block">${isNew ? 'Create Recipe' : 'Save Changes'}</button>
+          ${!isNew ? '<button type="button" id="copy-recipe" class="btn btn-block" style="background:var(--border);color:var(--text)">Duplicate Recipe</button>' : ''}
           ${!isNew ? '<button type="button" id="delete-recipe" class="btn btn-danger btn-block">Delete Recipe</button>' : ''}
         </form>
 
@@ -435,6 +436,20 @@ export function recipeEditView(params: Record<string, string>) {
         } catch {
           btn.disabled = false;
           btn.textContent = 'Failed - Retry';
+        }
+      });
+
+      // Duplicate
+      document.getElementById('copy-recipe')?.addEventListener('click', async () => {
+        const btn = document.getElementById('copy-recipe') as HTMLButtonElement;
+        btn.disabled = true;
+        btn.textContent = 'Duplicating...';
+        try {
+          const { recipe } = await recipesApi.copy(parseInt(params.id));
+          navigate(`#/recipes/${recipe.id}`);
+        } catch {
+          btn.disabled = false;
+          btn.textContent = 'Duplicate Recipe';
         }
       });
 

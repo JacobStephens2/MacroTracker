@@ -11,7 +11,7 @@ router.get('/', requireAuth, (req: Request, res: Response) => {
   const logs = db.prepare(`
     SELECT * FROM weight_logs
     WHERE user_id = ?
-    ORDER BY date DESC
+    ORDER BY date DESC, time DESC
     LIMIT ?
   `).all(req.user!.userId, limit);
   res.json({ logs });
@@ -21,22 +21,23 @@ router.get('/', requireAuth, (req: Request, res: Response) => {
 router.post('/', requireAuth, (req: Request, res: Response) => {
   try {
     const db = getDb();
-    const { date, weightLbs, notes } = req.body;
+    const { date, weightLbs, notes, time } = req.body;
+    const timeVal = time || '';
     if (!date || !weightLbs) {
       res.status(400).json({ error: 'Date and weight are required' });
       return;
     }
 
-    // Upsert: if there's already a log for this date, update it
-    const existing = db.prepare('SELECT id FROM weight_logs WHERE user_id = ? AND date = ?').get(req.user!.userId, date) as any;
+    // Upsert: if there's already a log for this date+time, update it
+    const existing = db.prepare('SELECT id FROM weight_logs WHERE user_id = ? AND date = ? AND time = ?').get(req.user!.userId, date, timeVal) as any;
 
     if (existing) {
       db.prepare('UPDATE weight_logs SET weight_lbs = ?, notes = ? WHERE id = ?').run(weightLbs, notes || null, existing.id);
       const log = db.prepare('SELECT * FROM weight_logs WHERE id = ?').get(existing.id);
       res.json({ log });
     } else {
-      const result = db.prepare('INSERT INTO weight_logs (user_id, date, weight_lbs, notes) VALUES (?, ?, ?, ?)').run(
-        req.user!.userId, date, weightLbs, notes || null
+      const result = db.prepare('INSERT INTO weight_logs (user_id, date, time, weight_lbs, notes) VALUES (?, ?, ?, ?, ?)').run(
+        req.user!.userId, date, timeVal, weightLbs, notes || null
       );
       const log = db.prepare('SELECT * FROM weight_logs WHERE id = ?').get(result.lastInsertRowid);
       res.json({ log });
@@ -64,12 +65,12 @@ router.delete('/:id', requireAuth, (req: Request, res: Response) => {
 // Export weight as CSV
 router.get('/export/csv', requireAuth, (req: Request, res: Response) => {
   const db = getDb();
-  const logs = db.prepare('SELECT date, weight_lbs, notes FROM weight_logs WHERE user_id = ? ORDER BY date DESC').all(req.user!.userId) as any[];
+  const logs = db.prepare('SELECT date, time, weight_lbs, notes FROM weight_logs WHERE user_id = ? ORDER BY date DESC, time DESC').all(req.user!.userId) as any[];
 
-  const header = 'Date,Weight(lbs),Notes';
+  const header = 'Date,Time,Weight(lbs),Notes';
   const rows = logs.map((l: any) => {
     const esc = (s: string | null) => s ? `"${s.replace(/"/g, '""')}"` : '';
-    return `${l.date},${l.weight_lbs},${esc(l.notes)}`;
+    return `${l.date},${l.time || ''},${l.weight_lbs},${esc(l.notes)}`;
   });
 
   res.setHeader('Content-Type', 'text/csv');

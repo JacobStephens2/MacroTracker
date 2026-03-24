@@ -304,7 +304,8 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
       for (const item of items) {
         const name = item.food_name || item.recipe_name || item.note || 'Quick entry';
         const brand = item.food_brand ? `<span class="food-brand">${item.food_brand}</span>` : '';
-        const servingsLabel = item.servings !== 1 ? `${parseFloat(item.servings.toFixed(2))}x ` : '';
+        const displayServings = item.unit_scale ? item.servings / item.unit_scale : item.servings;
+        const servingsLabel = displayServings !== 1 ? `${parseFloat(displayServings.toFixed(2))}x ` : '';
         html += `
           <div class="meal-item-wrapper" data-id="${item.id}">
             <div class="meal-item-swipe-bg">Delete</div>
@@ -419,10 +420,13 @@ function showEditMealModal(meal: MealLog, date: string) {
 
   // For food/recipe-based entries, show per-unit macros and servings control
   // For quick entries, show editable macro fields
-  const perUnitCal = meal.servings ? meal.calories / meal.servings : meal.calories;
-  const perUnitC = meal.servings ? meal.carbs_g / meal.servings : meal.carbs_g;
-  const perUnitP = meal.servings ? meal.protein_g / meal.servings : meal.protein_g;
-  const perUnitF = meal.servings ? meal.fat_g / meal.servings : meal.fat_g;
+  // If unit_scale is set, show macros per that unit and display the user's original quantity
+  const scale = meal.unit_scale || 1;
+  const perUnitCal = meal.servings ? (meal.calories / meal.servings) * scale : meal.calories;
+  const perUnitC = meal.servings ? (meal.carbs_g / meal.servings) * scale : meal.carbs_g;
+  const perUnitP = meal.servings ? (meal.protein_g / meal.servings) * scale : meal.protein_g;
+  const perUnitF = meal.servings ? (meal.fat_g / meal.servings) * scale : meal.fat_g;
+  const displayQty = meal.servings / scale;
 
   if (hasFoodRef) {
     body.innerHTML = `
@@ -438,7 +442,7 @@ function showEditMealModal(meal: MealLog, date: string) {
         <label for="edit-servings">${meal.unit_label ? meal.unit_label : 'Servings'}</label>
         <div class="servings-control">
           <button type="button" id="edit-serv-minus" class="btn-icon">-</button>
-          <input type="number" id="edit-servings" value="${meal.servings}" min="0.25" step="0.25" />
+          <input type="number" id="edit-servings" value="${parseFloat(displayQty.toFixed(2))}" min="0.25" step="0.25" />
           <button type="button" id="edit-serv-plus" class="btn-icon">+</button>
         </div>
       </div>
@@ -465,12 +469,12 @@ function showEditMealModal(meal: MealLog, date: string) {
 
     const servingsInput = document.getElementById('edit-servings') as HTMLInputElement;
     const updateTotal = () => {
-      const s = parseFloat(servingsInput.value) || 1;
+      const qty = parseFloat(servingsInput.value) || 1;
       document.getElementById('edit-total')!.innerHTML = `
-        <span>${Math.round(perUnitCal * s)} kcal</span>
-        <span>${Math.round(perUnitC * s * 10) / 10}g C</span>
-        <span>${Math.round(perUnitP * s * 10) / 10}g P</span>
-        <span>${Math.round(perUnitF * s * 10) / 10}g F</span>
+        <span>${Math.round(perUnitCal * qty)} kcal</span>
+        <span>${Math.round(perUnitC * qty * 10) / 10}g C</span>
+        <span>${Math.round(perUnitP * qty * 10) / 10}g P</span>
+        <span>${Math.round(perUnitF * qty * 10) / 10}g F</span>
       `;
     };
     servingsInput.addEventListener('input', updateTotal);
@@ -484,18 +488,19 @@ function showEditMealModal(meal: MealLog, date: string) {
     });
 
     document.getElementById('edit-save-btn')!.addEventListener('click', async () => {
-      const s = parseFloat(servingsInput.value) || 1;
+      const qty = parseFloat(servingsInput.value) || 1;
+      const effectiveServings = qty * scale;
       const mealType = (document.getElementById('edit-meal-type') as HTMLSelectElement).value;
       const btn = document.getElementById('edit-save-btn') as HTMLButtonElement;
       btn.disabled = true;
       try {
         await mealsApi.update(meal.id, {
-          servings: s,
+          servings: effectiveServings,
           mealType,
-          calories: Math.round(perUnitCal * s * 10) / 10,
-          carbsG: Math.round(perUnitC * s * 10) / 10,
-          proteinG: Math.round(perUnitP * s * 10) / 10,
-          fatG: Math.round(perUnitF * s * 10) / 10,
+          calories: Math.round(perUnitCal * qty * 10) / 10,
+          carbsG: Math.round(perUnitC * qty * 10) / 10,
+          proteinG: Math.round(perUnitP * qty * 10) / 10,
+          fatG: Math.round(perUnitF * qty * 10) / 10,
         });
         modal.classList.add('hidden');
         loadMeals(date);
