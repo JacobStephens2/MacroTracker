@@ -93,10 +93,11 @@ router.get('/search', optionalAuth, async (req: Request, res: Response) => {
     if (usdaResults.status === 'fulfilled') external.push(...usdaResults.value);
     if (fsResults.status === 'fulfilled') external.push(...fsResults.value);
 
-    // Sort by relevance, then by source priority (FatSecret > USDA > OFF) as tiebreaker
+    // Sort by relevance + unit count bonus, then by source priority as tiebreaker
     const sourcePriority: Record<string, number> = { fatsecret: 0, usda: 1, openfoodfacts: 2 };
+    const score = (item: any) => relevanceScore(item.name, query) + Math.min((item.measures?.length || 0) * 2, 10);
     external.sort((a, b) => {
-      const rel = relevanceScore(b.name, query) - relevanceScore(a.name, query);
+      const rel = score(b) - score(a);
       if (rel !== 0) return rel;
       return (sourcePriority[a.source] ?? 9) - (sourcePriority[b.source] ?? 9);
     });

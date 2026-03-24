@@ -363,7 +363,7 @@ export function recipeEditView(params: Record<string, string>) {
               item.innerHTML = `
                 <div class="food-item-info">
                   <span class="food-item-name">${food.name}${food.brand ? ` (${food.brand})` : ''}</span>
-                  <span class="food-serving">${food.serving_size}${food.serving_unit} · ${Math.round(food.calories)} kcal</span>
+                  <span class="food-serving">${food.serving_size}${food.serving_unit}${(() => { try { const m = food.measures ? JSON.parse(food.measures) : []; return m.length ? ` · ${m.length + 1} units` : ''; } catch { return ''; } })()} · ${Math.round(food.calories)} kcal</span>
                 </div>
                 <div class="food-item-macros">
                   <span class="macro-chip chip-carbs">${Math.round(food.carbs_g)}c</span>
@@ -383,7 +383,7 @@ export function recipeEditView(params: Record<string, string>) {
               item.innerHTML = `
                 <div class="food-item-info">
                   <span class="food-item-name">${ext.name}${ext.brand ? ` (${ext.brand})` : ''}</span>
-                  <span class="food-serving">${ext.servingSize}${ext.servingUnit} · ${Math.round(ext.calories)} kcal</span>
+                  <span class="food-serving">${ext.servingSize}${ext.servingUnit}${ext.measures?.length ? ` · ${ext.measures.length + 1} units` : ''} · ${Math.round(ext.calories)} kcal</span>
                 </div>
                 <div class="food-item-macros">
                   <span class="macro-chip chip-carbs">${Math.round(ext.carbsG)}c</span>

@@ -328,7 +328,7 @@ function renderFoodList(container: HTMLElement, foods: Food[], mealType: MealTyp
       <div class="food-item-info">
         <span class="food-item-name">${food.name}</span>
         ${food.brand ? `<span class="food-brand">${food.brand}</span>` : ''}
-        <span class="food-serving">${food.serving_size}${food.serving_unit}</span>
+        <span class="food-serving">${food.serving_size}${food.serving_unit}${(() => { try { const m = food.measures ? JSON.parse(food.measures) : []; return m.length ? ` · ${m.length + 1} units` : ''; } catch { return ''; } })()}</span>
       </div>
       <div class="food-item-macros">
         <span class="macro-chip chip-calories">${Math.round(food.calories)}</span>
@@ -364,7 +364,7 @@ function renderExternalList(container: HTMLElement, items: ExternalFood[], mealT
       <div class="food-item-info">
         <span class="food-item-name">${item.name}</span>
         ${item.brand ? `<span class="food-brand">${item.brand}</span>` : ''}
-        <span class="food-serving">${item.servingSize}${item.servingUnit} · <span class="food-source source-${item.source}">${sourceLabel}</span></span>
+        <span class="food-serving">${item.servingSize}${item.servingUnit}${item.measures?.length ? ` · ${item.measures.length + 1} units` : ''} · <span class="food-source source-${item.source}">${sourceLabel}</span></span>
       </div>
       <div class="food-item-macros">
         <span class="macro-chip chip-calories">${Math.round(item.calories)}</span>
