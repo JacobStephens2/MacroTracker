@@ -712,9 +712,8 @@ input, button, select, textarea {
 
 .api-legend {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
   padding: 12px 16px;
   margin-top: auto;
   font-size: 12px;
