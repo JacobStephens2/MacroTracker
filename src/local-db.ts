@@ -261,6 +261,7 @@ export const localMeals = {
       serving_unit,
       unit_label: data.unitLabel || null,
       unit_scale: data.unitScale || null,
+      created_at: new Date().toISOString(),
       recipe_name,
     };
     meals.push(meal);
@@ -297,6 +298,7 @@ export const localMeals = {
       serving_unit: null,
       unit_label: null,
       unit_scale: null,
+      created_at: new Date().toISOString(),
       recipe_name: null,
     };
     meals.push(meal);

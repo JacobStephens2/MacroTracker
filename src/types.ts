@@ -71,6 +71,7 @@ export interface MealLog {
   serving_unit: string | null;
   unit_label: string | null;
   unit_scale: number | null;
+  created_at: string | null;
   recipe_name: string | null;
 }
 

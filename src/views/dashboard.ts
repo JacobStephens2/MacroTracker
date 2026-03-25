@@ -306,6 +306,7 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
         const brand = item.food_brand ? `<span class="food-brand">${item.food_brand}</span>` : '';
         const displayServings = item.unit_scale ? item.servings / item.unit_scale : item.servings;
         const servingsLabel = displayServings !== 1 ? `${parseFloat(displayServings.toFixed(2))}x ` : '';
+        const timeStr = item.created_at ? new Date(item.created_at + 'Z').toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
         html += `
           <div class="meal-item-wrapper" data-id="${item.id}">
             <div class="meal-item-swipe-bg">Delete</div>
@@ -313,6 +314,7 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
               <div class="meal-item-info">
                 <span class="meal-item-name">${servingsLabel}${name}</span>
                 ${brand}
+                ${timeStr ? `<span class="food-serving">${timeStr}</span>` : ''}
               </div>
               <div class="meal-item-macros">
                 <span class="macro-chip chip-calories">${Math.round(item.calories)}</span>
