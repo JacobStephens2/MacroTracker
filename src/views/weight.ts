@@ -16,21 +16,21 @@ export function weightView() {
         </header>
 
         <form id="weight-form" class="weight-form">
-          <div class="form-row">
+          <div class="weight-form-row">
             <div class="form-group" style="flex:1">
               <label for="weight-date">Date</label>
               <input type="date" id="weight-date" value="${todayStr()}" />
             </div>
-            <div class="form-group" style="flex:0.7">
+            <div class="form-group" style="flex:1">
               <label for="weight-time">Time</label>
               <input type="time" id="weight-time" value="${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}" />
             </div>
-            <div class="form-group" style="flex:1">
-              <label for="weight-lbs">Weight (lbs)</label>
-              <input type="number" id="weight-lbs" step="0.1" min="50" max="500" required />
-            </div>
-            <button type="submit" class="btn btn-primary" style="align-self:flex-end">Log</button>
           </div>
+          <div class="form-group">
+            <label for="weight-lbs">Weight (lbs)</label>
+            <input type="number" id="weight-lbs" step="0.1" min="50" max="500" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Log Weight</button>
         </form>
 
         <div class="chart-container">

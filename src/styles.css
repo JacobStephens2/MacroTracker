@@ -1022,6 +1022,21 @@ input.searching,
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
+.weight-form-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.weight-form-row:last-child {
+  margin-bottom: 0;
+}
+.weight-form-row .form-group {
+  min-width: 0;
+}
+.weight-form-row .form-group input {
+  max-width: 100%;
+}
+
 .chart-container {
   background: var(--surface);
   border-radius: var(--radius);
