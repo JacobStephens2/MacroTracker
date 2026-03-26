@@ -444,7 +444,7 @@ function showEditMealModal(meal: MealLog, date: string) {
         <label for="edit-servings">${meal.unit_label ? meal.unit_label : 'Servings'}</label>
         <div class="servings-control">
           <button type="button" id="edit-serv-minus" class="btn-icon">-</button>
-          <input type="number" id="edit-servings" value="${parseFloat(displayQty.toFixed(2))}" min="0.25" step="0.25" />
+          <input type="number" id="edit-servings" value="${parseFloat(displayQty.toFixed(2))}" min="1" step="1" />
           <button type="button" id="edit-serv-plus" class="btn-icon">+</button>
         </div>
       </div>
@@ -481,11 +481,11 @@ function showEditMealModal(meal: MealLog, date: string) {
     };
     servingsInput.addEventListener('input', updateTotal);
     document.getElementById('edit-serv-minus')!.addEventListener('click', () => {
-      servingsInput.value = String(Math.max(0.25, (parseFloat(servingsInput.value) || 1) - 0.25));
+      servingsInput.value = String(Math.max(1, (parseFloat(servingsInput.value) || 1) - 1));
       updateTotal();
     });
     document.getElementById('edit-serv-plus')!.addEventListener('click', () => {
-      servingsInput.value = String((parseFloat(servingsInput.value) || 1) + 0.25);
+      servingsInput.value = String((parseFloat(servingsInput.value) || 1) + 1);
       updateTotal();
     });
 

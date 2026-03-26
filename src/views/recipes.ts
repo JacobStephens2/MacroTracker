@@ -79,7 +79,7 @@ export function recipeEditView(params: Record<string, string>) {
           <div class="form-row">
             <div class="form-group">
               <label for="recipe-servings">Total Servings</label>
-              <input type="number" id="recipe-servings" value="1" min="0.25" step="0.25" />
+              <input type="number" id="recipe-servings" value="1" min="1" step="1" />
             </div>
             <div class="form-group">
               <label for="recipe-unit">Serving Unit</label>
@@ -188,7 +188,7 @@ export function recipeEditView(params: Record<string, string>) {
             <label for="ing-qty">Quantity</label>
             <div class="servings-control">
               <button type="button" id="ing-qty-minus" class="btn-icon">-</button>
-              <input type="number" id="ing-qty" value="${isEdit ? (ingredients[editIndex!].qty ?? Math.round(ingredients[editIndex!].servings * 100) / 100) : 1}" min="0.25" step="0.25" />
+              <input type="number" id="ing-qty" value="${isEdit ? (ingredients[editIndex!].qty ?? Math.round(ingredients[editIndex!].servings * 100) / 100) : 1}" min="1" step="1" />
               <button type="button" id="ing-qty-plus" class="btn-icon">+</button>
             </div>
           </div>
@@ -244,11 +244,11 @@ export function recipeEditView(params: Record<string, string>) {
 
         qtyInput.addEventListener('input', updateTotal);
         document.getElementById('ing-qty-minus')!.addEventListener('click', () => {
-          qtyInput.value = String(Math.max(0.25, (parseFloat(qtyInput.value) || 1) - 0.25));
+          qtyInput.value = String(Math.max(1, (parseFloat(qtyInput.value) || 1) - 1));
           updateTotal();
         });
         document.getElementById('ing-qty-plus')!.addEventListener('click', () => {
-          qtyInput.value = String((parseFloat(qtyInput.value) || 1) + 0.25);
+          qtyInput.value = String((parseFloat(qtyInput.value) || 1) + 1);
           updateTotal();
         });
 

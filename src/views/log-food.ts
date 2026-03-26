@@ -461,7 +461,7 @@ function showAddModal(food: Food, mealType: MealType, date: string) {
       <label for="servings-input">Quantity</label>
       <div class="servings-control">
         <button id="serv-minus" class="btn-icon">-</button>
-        <input type="number" id="servings-input" value="1" min="0.25" step="0.25" />
+        <input type="number" id="servings-input" value="1" min="1" step="1" />
         <button id="serv-plus" class="btn-icon">+</button>
       </div>
     </div>
@@ -524,11 +524,11 @@ function showAddModal(food: Food, mealType: MealType, date: string) {
 
   servingsInput.addEventListener('input', updateTotal);
   document.getElementById('serv-minus')!.addEventListener('click', () => {
-    servingsInput.value = String(Math.max(0.25, (parseFloat(servingsInput.value) || 1) - 0.25));
+    servingsInput.value = String(Math.max(1, (parseFloat(servingsInput.value) || 1) - 1));
     updateTotal();
   });
   document.getElementById('serv-plus')!.addEventListener('click', () => {
-    servingsInput.value = String((parseFloat(servingsInput.value) || 1) + 0.25);
+    servingsInput.value = String((parseFloat(servingsInput.value) || 1) + 1);
     updateTotal();
   });
 
@@ -579,7 +579,7 @@ function showRecipeAddModal(recipe: Recipe, mealType: MealType, date: string) {
       <label for="servings-input">Servings</label>
       <div class="servings-control">
         <button id="serv-minus" class="btn-icon">-</button>
-        <input type="number" id="servings-input" value="1" min="0.25" step="0.25" />
+        <input type="number" id="servings-input" value="1" min="1" step="1" />
         <button id="serv-plus" class="btn-icon">+</button>
       </div>
     </div>
@@ -606,12 +606,12 @@ function showRecipeAddModal(recipe: Recipe, mealType: MealType, date: string) {
   servingsInput.addEventListener('input', updateTotal);
   document.getElementById('serv-minus')!.addEventListener('click', () => {
     const v = parseFloat(servingsInput.value) || 1;
-    servingsInput.value = String(Math.max(0.25, v - 0.25));
+    servingsInput.value = String(Math.max(1, v - 1));
     updateTotal();
   });
   document.getElementById('serv-plus')!.addEventListener('click', () => {
     const v = parseFloat(servingsInput.value) || 1;
-    servingsInput.value = String(v + 0.25);
+    servingsInput.value = String(v + 1);
     updateTotal();
   });
 
