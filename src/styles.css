@@ -870,9 +870,7 @@ input.searching,
   font-size: 18px;
   font-weight: 700;
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
 }
 
 .modal-macros {
