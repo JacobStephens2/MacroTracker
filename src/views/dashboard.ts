@@ -350,20 +350,21 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
   container.querySelectorAll('.meal-item-wrapper').forEach((wrapper) => {
     const el = wrapper as HTMLElement;
     const inner = el.querySelector('.meal-item') as HTMLElement;
-    let startX = 0, currentX = 0, swiping = false, didMove = false;
+    let startX = 0, startY = 0, currentX = 0, swiping = false, didMove = false;
 
-    const onStart = (clientX: number) => {
+    const onStart = (clientX: number, clientY: number) => {
       startX = clientX;
+      startY = clientY;
       currentX = 0;
       swiping = true;
       didMove = false;
       inner.style.transition = 'none';
     };
 
-    const onMove = (clientX: number) => {
+    const onMove = (clientX: number, clientY: number) => {
       if (!swiping) return;
       currentX = clientX - startX;
-      if (Math.abs(currentX) > 5) didMove = true;
+      if (Math.abs(currentX) > 5 || Math.abs(clientY - startY) > 5) didMove = true;
       if (currentX > 0) currentX = 0; // Only swipe left
       inner.style.transform = `translateX(${currentX}px)`;
     };
@@ -401,13 +402,13 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
       }
     };
 
-    inner.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX), { passive: true });
-    inner.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX), { passive: true });
+    inner.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    inner.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
     inner.addEventListener('touchend', onEnd);
 
     // Mouse fallback for desktop
-    inner.addEventListener('mousedown', (e) => { onStart(e.clientX); e.preventDefault(); });
-    document.addEventListener('mousemove', (e) => { if (swiping) onMove(e.clientX); });
+    inner.addEventListener('mousedown', (e) => { onStart(e.clientX, e.clientY); e.preventDefault(); });
+    document.addEventListener('mousemove', (e) => { if (swiping) onMove(e.clientX, e.clientY); });
     document.addEventListener('mouseup', () => { if (swiping) onEnd(); });
   });
 }
