@@ -47,7 +47,7 @@ route('/settings', requireUser(() => settingsView()));
 // Bootstrap: check auth state
 async function init() {
   const app = document.getElementById('app')!;
-  app.innerHTML = '<div class="loading-screen"><div class="logo-icon">M</div><p>Loading...</p></div>';
+  app.innerHTML = '<div class="loading-screen"><img class="logo-icon" src="/logo.svg" alt="Macro Tracker" /><p>Loading...</p></div>';
 
   if (isGuestMode()) {
     const user = getGuestUser();

@@ -238,14 +238,7 @@ input, button, select, textarea {
 .logo-icon {
   width: 56px;
   height: 56px;
-  background: linear-gradient(145deg, #10B981, #059669);
-  color: white;
   border-radius: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  font-weight: 700;
   margin-bottom: 12px;
 }
 

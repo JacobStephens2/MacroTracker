@@ -9,7 +9,7 @@ export function loginView() {
       <div class="auth-container">
         <div class="auth-card">
           <div class="auth-logo">
-            <div class="logo-icon">M</div>
+            <img class="logo-icon" src="/logo.svg" alt="Macro Tracker" />
             <h1>Macro Tracker</h1>
           </div>
           <form id="login-form">
@@ -74,7 +74,7 @@ export function registerView() {
       <div class="auth-container">
         <div class="auth-card">
           <div class="auth-logo">
-            <div class="logo-icon">M</div>
+            <img class="logo-icon" src="/logo.svg" alt="Macro Tracker" />
             <h1>Create Account</h1>
           </div>
           <form id="register-form">
