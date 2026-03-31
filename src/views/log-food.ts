@@ -92,6 +92,8 @@ export function logFoodView() {
         searchTimeout = setTimeout(async () => {
           if (searchInput.value.trim().length >= 2) {
             await searchFoods(searchInput.value.trim(), mealType, date);
+          } else if (activeTab === 'search') {
+            loadTab('search', mealType, date);
           }
           searchInput.classList.remove('searching');
         }, 400);
@@ -209,7 +211,18 @@ async function loadTab(tab: string, mealType: MealType, date: string) {
   const content = document.getElementById('tab-content')!;
 
   if (tab === 'search') {
-    content.innerHTML = '<p class="text-muted">Type to search for foods</p>';
+    content.innerHTML = '<div class="loading-spinner">Loading...</div>';
+    try {
+      const { foods } = await foodsApi.recent();
+      if (foods.length === 0) {
+        content.innerHTML = '<p class="text-muted">Type to search for foods</p>';
+        return;
+      }
+      content.innerHTML = '<h4 class="section-label">Recent</h4>';
+      renderFoodList(content, foods, mealType, date);
+    } catch {
+      content.innerHTML = '<p class="text-muted">Type to search for foods</p>';
+    }
     return;
   }
 
