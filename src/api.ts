@@ -9,16 +9,41 @@ import {
   localWeight,
 } from './local-db';
 
-const BASE = '/api';
+export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined) || '/api';
+
+const TOKEN_KEY = 'mt_token';
+
+export function getToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setToken(token: string | null) {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
       ...options?.headers,
     },
-    credentials: 'same-origin',
+    credentials: 'include',
   });
 
   if (res.status === 401) {
@@ -33,13 +58,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 // Like request() but doesn't redirect to login on 401 (for endpoints that support optional auth)
 async function requestNoAuthRedirect<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
       ...options?.headers,
     },
-    credentials: 'same-origin',
+    credentials: 'include',
   });
 
   const data = await res.json();
@@ -49,20 +75,24 @@ async function requestNoAuthRedirect<T>(path: string, options?: RequestInit): Pr
 
 // Auth
 export const auth = {
-  register: (email: string, password: string, firstName: string) => {
+  register: async (email: string, password: string, firstName: string) => {
     clearGuestData();
-    return request<{ user: User }>('/auth/register', {
+    const res = await request<{ user: User; token?: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, firstName }),
     });
+    if (res.token) setToken(res.token);
+    return res;
   },
 
-  login: (email: string, password: string) => {
+  login: async (email: string, password: string) => {
     clearGuestData();
-    return request<{ user: User }>('/auth/login', {
+    const res = await request<{ user: User; token?: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+    if (res.token) setToken(res.token);
+    return res;
   },
 
   me: () => (isGuestMode() ? localAuth.me() : request<{ user: User }>('/auth/me')),
@@ -81,7 +111,14 @@ export const auth = {
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
-  logout: () => (isGuestMode() ? localAuth.logout() : request<{ success: boolean }>('/auth/logout', { method: 'POST' })),
+  logout: async () => {
+    if (isGuestMode()) return localAuth.logout();
+    try {
+      return await request<{ success: boolean }>('/auth/logout', { method: 'POST' });
+    } finally {
+      setToken(null);
+    }
+  },
 
   verifyEmail: (token: string) =>
     request<{ success: boolean }>('/auth/verify-email', {

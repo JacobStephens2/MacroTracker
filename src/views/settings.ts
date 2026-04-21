@@ -1,7 +1,25 @@
-import { auth } from '../api';
+import { auth, API_BASE, getToken } from '../api';
 import { state, setState } from '../state';
 import { navigate } from '../router';
 import { isGuestMode, clearGuestData } from '../local-db';
+
+async function downloadCsv(path: string, filename: string) {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Download failed');
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 export function settingsView() {
   const user = state.user!;
@@ -37,8 +55,8 @@ export function settingsView() {
     ? ''
     : `<div class="settings-section">
         <h3>Export Data</h3>
-        <a href="/api/meals/export/csv" class="btn btn-outline btn-block" download style="margin-bottom:8px">Download Meal Log (CSV)</a>
-        <a href="/api/weight/export/csv" class="btn btn-outline btn-block" download>Download Weight Log (CSV)</a>
+        <button id="export-meals-btn" class="btn btn-outline btn-block" style="margin-bottom:8px">Download Meal Log (CSV)</button>
+        <button id="export-weight-btn" class="btn btn-outline btn-block">Download Weight Log (CSV)</button>
       </div>`;
 
   const logoutSection = guest
@@ -163,6 +181,22 @@ export function settingsView() {
             (document.getElementById('s-new-pw') as HTMLInputElement).value = '';
           } catch (err: any) {
             showMsg('pw-msg', err.message, 'error');
+          }
+        });
+
+        // Export buttons
+        document.getElementById('export-meals-btn')!.addEventListener('click', async () => {
+          try {
+            await downloadCsv('/meals/export/csv', 'meals.csv');
+          } catch (err: any) {
+            alert(err.message);
+          }
+        });
+        document.getElementById('export-weight-btn')!.addEventListener('click', async () => {
+          try {
+            await downloadCsv('/weight/export/csv', 'weight.csv');
+          } catch (err: any) {
+            alert(err.message);
           }
         });
       }
