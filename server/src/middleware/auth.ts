@@ -35,8 +35,16 @@ export function setTokenCookie(res: Response, token: string) {
   });
 }
 
+function extractToken(req: Request): string | undefined {
+  const header = req.headers.authorization;
+  if (header && header.startsWith('Bearer ')) {
+    return header.slice(7);
+  }
+  return req.cookies?.token;
+}
+
 export function optionalAuth(req: Request, res: Response, next: NextFunction) {
-  const token = req.cookies?.token;
+  const token = extractToken(req);
   if (token) {
     try {
       req.user = jwt.verify(token, getSecret()) as AuthPayload;
@@ -48,7 +56,7 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const token = req.cookies?.token;
+  const token = extractToken(req);
   if (!token) {
     res.status(401).json({ error: 'Not authenticated' });
     return;

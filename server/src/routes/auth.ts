@@ -74,7 +74,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const token = signToken({ userId, email: email.toLowerCase().trim(), firstName: firstName.trim() });
     setTokenCookie(res, token);
-    res.json({ user: { id: userId, email, firstName, emailVerified: false } });
+    res.json({ user: { id: userId, email, firstName, emailVerified: false }, token });
   } catch (e) {
     console.error('Register error:', e);
     res.status(500).json({ error: 'Registration failed' });
@@ -118,6 +118,7 @@ router.post('/login', async (req: Request, res: Response) => {
         targetProteinG: user.target_protein_g,
         targetFatG: user.target_fat_g,
       },
+      token,
     });
   } catch (e) {
     console.error('Login error:', e);
