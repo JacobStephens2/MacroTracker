@@ -46,6 +46,7 @@ export function settingsView() {
         <button id="logout-btn" class="btn btn-danger btn-block">Clear Data & Exit Guest Mode</button>
       </div>`
     : `<div class="settings-section">
+        <p class="logout-email">Signed in as <strong>${user.email}</strong></p>
         <button id="logout-btn" class="btn btn-danger btn-block">Log Out</button>
       </div>`;
 
