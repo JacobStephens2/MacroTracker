@@ -20,8 +20,8 @@
     "path": "./macros-keystore.jks",
     "alias": "macros"
   },
-  "appVersionCode": 2,
-  "appVersionName": "1.1.0",
+  "appVersionCode": 3,
+  "appVersionName": "1.1.1",
   "splashScreenFadeOutDuration": 300,
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
