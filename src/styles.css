@@ -688,7 +688,8 @@ input, button, select, textarea {
 .sample-banner {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px 12px;
   padding: 10px 12px 10px 14px;
   margin: 4px 0 12px;
   background: rgba(16, 185, 129, 0.10);
@@ -697,16 +698,14 @@ input, button, select, textarea {
   font-size: 0.8125rem;
   color: var(--text-secondary);
 }
-.sample-banner span { flex: 1; }
+.sample-banner span { flex: 1 1 220px; }
 .sample-banner a {
   color: var(--primary-container);
   font-weight: 600;
 }
-.sample-banner .btn-icon {
-  width: 28px;
-  height: 28px;
-  font-size: 18px;
+.sample-banner .btn {
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ===== THEME TOGGLE (segmented control) ===== */

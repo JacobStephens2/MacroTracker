@@ -57,7 +57,7 @@ export function dashboardView() {
         ${showSampleBanner ? `
         <div class="sample-banner" id="sample-banner">
           <span>Showing sample data. <a href="#/register">Create an account</a> to start tracking your own.</span>
-          <button type="button" id="sample-dismiss-btn" class="btn-icon" aria-label="Dismiss sample data">&times;</button>
+          <button type="button" id="sample-dismiss-btn" class="btn btn-sm btn-outline">Clear sample data</button>
         </div>
         ` : ''}
 
