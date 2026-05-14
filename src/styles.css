@@ -303,7 +303,9 @@ input, button, select, textarea {
 
 /* ===== PAGE LAYOUT ===== */
 .page {
-  padding: 0 16px 80px;
+  /* Bottom padding clears the fixed bottom nav (var(--nav-height))
+     plus the device safe area (home-bar / gesture inset). */
+  padding: 0 16px calc(var(--nav-height) + env(safe-area-inset-bottom, 0) + 16px);
   max-width: 600px;
   margin: 0 auto;
 }
