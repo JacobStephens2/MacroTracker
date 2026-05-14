@@ -1,6 +1,7 @@
 import type { User, Food, ExternalFood, MealLog, Recipe, RecipeIngredient, WeightLog } from './types';
 
 const GUEST_KEY = 'guest_mode';
+const SAMPLE_KEY = 'guest_sample_active';
 
 export function isGuestMode(): boolean {
   return localStorage.getItem(GUEST_KEY) === 'true';
@@ -21,6 +22,115 @@ export function clearGuestData() {
   localStorage.removeItem('guest_weight');
   localStorage.removeItem('guest_workout_days');
   localStorage.removeItem('guest_next_id');
+  localStorage.removeItem(SAMPLE_KEY);
+}
+
+export function hasSampleData(): boolean {
+  return localStorage.getItem(SAMPLE_KEY) === 'true';
+}
+
+function todayDateStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Seed a fresh guest with a day's worth of realistic foods, meals, and a
+// weight log so the dashboard isn't empty on first visit. Items are tagged
+// with a `_sample` marker so dismissSampleData() can remove just them.
+export function seedSampleData() {
+  if (hasSampleData()) return;
+  localStorage.setItem(SAMPLE_KEY, 'true');
+
+  const date = todayDateStr();
+  const nowIso = new Date().toISOString();
+
+  const buildFood = (data: Partial<Food> & { name: string; calories: number; carbs_g: number; protein_g: number; fat_g: number }): Food & { _sample: true } => ({
+    id: nextId(),
+    user_id: 0,
+    name: data.name,
+    brand: data.brand ?? null,
+    barcode: null,
+    serving_size: data.serving_size ?? 1,
+    serving_unit: data.serving_unit ?? 'serving',
+    calories: data.calories,
+    carbs_g: data.carbs_g,
+    protein_g: data.protein_g,
+    fat_g: data.fat_g,
+    fiber_g: 0,
+    sugar_g: 0,
+    source: 'sample',
+    source_id: null,
+    measures: null,
+    _sample: true,
+  });
+
+  const yogurt   = buildFood({ name: 'Greek Yogurt (plain, nonfat)', serving_unit: 'cup', calories: 130, carbs_g: 9,  protein_g: 22, fat_g: 0  });
+  const banana   = buildFood({ name: 'Banana', serving_unit: 'medium banana', calories: 105, carbs_g: 27, protein_g: 1,  fat_g: 0  });
+  const chicken  = buildFood({ name: 'Grilled Chicken Breast', serving_size: 4, serving_unit: 'oz', calories: 187, carbs_g: 0,  protein_g: 35, fat_g: 4  });
+  const rice     = buildFood({ name: 'Brown Rice, cooked', serving_unit: 'cup', calories: 215, carbs_g: 45, protein_g: 5,  fat_g: 2  });
+  const oliveOil = buildFood({ name: 'Olive Oil', serving_unit: 'tbsp', calories: 119, carbs_g: 0,  protein_g: 0,  fat_g: 14 });
+  const almonds  = buildFood({ name: 'Almonds', serving_size: 1, serving_unit: 'oz', calories: 164, carbs_g: 6,  protein_g: 6,  fat_g: 14 });
+
+  const sampleFoods: Food[] = [yogurt, banana, chicken, rice, oliveOil, almonds];
+  const existingFoods = getStore<Food[]>('guest_foods', []);
+  setStore('guest_foods', [...existingFoods, ...sampleFoods]);
+
+  const buildMeal = (mealType: MealLog['meal_type'], food: Food, servings: number): MealLog & { _sample: true } => ({
+    id: nextId(),
+    user_id: 0,
+    date,
+    meal_type: mealType,
+    food_id: food.id,
+    recipe_id: null,
+    servings,
+    calories: food.calories * servings,
+    carbs_g: food.carbs_g * servings,
+    protein_g: food.protein_g * servings,
+    fat_g: food.fat_g * servings,
+    note: null,
+    food_name: food.name,
+    food_brand: null,
+    serving_size: food.serving_size,
+    serving_unit: food.serving_unit,
+    unit_label: null,
+    unit_scale: null,
+    created_at: nowIso,
+    recipe_name: null,
+    _sample: true,
+  });
+
+  const sampleMeals: MealLog[] = [
+    buildMeal('breakfast', yogurt, 1),
+    buildMeal('breakfast', banana, 1),
+    buildMeal('lunch', chicken, 1),
+    buildMeal('lunch', rice, 1),
+    buildMeal('lunch', oliveOil, 1),
+    buildMeal('snack', almonds, 1),
+  ];
+  const existingMeals = getStore<MealLog[]>('guest_meals', []);
+  setStore('guest_meals', [...existingMeals, ...sampleMeals]);
+
+  const existingWeight = getStore<WeightLog[]>('guest_weight', []);
+  const sampleWeight: WeightLog & { _sample: true } = {
+    id: nextId(),
+    date,
+    time: '07:00',
+    weight_lbs: 165,
+    notes: null,
+    _sample: true,
+  };
+  setStore('guest_weight', [...existingWeight, sampleWeight]);
+}
+
+export function dismissSampleData() {
+  localStorage.removeItem(SAMPLE_KEY);
+  const filter = <T extends { _sample?: boolean }>(key: string) => {
+    const items = getStore<T[]>(key, []).filter((item) => !item._sample);
+    setStore(key, items);
+  };
+  filter<Food & { _sample?: boolean }>('guest_foods');
+  filter<MealLog & { _sample?: boolean }>('guest_meals');
+  filter<WeightLog & { _sample?: boolean }>('guest_weight');
 }
 
 function getStore<T>(key: string, fallback: T): T {

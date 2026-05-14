@@ -1,6 +1,7 @@
 import { meals as mealsApi, workoutDays as workoutDaysApi } from '../api';
 import { state, formatDate, todayStr, toLocalDateStr } from '../state';
 import { navigate } from '../router';
+import { isGuestMode, hasSampleData, dismissSampleData } from '../local-db';
 import type { MealLog, MealType } from '../types';
 
 function formatDateSub(dateStr: string): string {
@@ -44,12 +45,21 @@ export function dashboardView() {
   currentIsWorkout = workoutDayCache[date] || false;
   const t = getTargets();
 
+  const showSampleBanner = isGuestMode() && hasSampleData();
+
   return {
     html: `
       <div class="page dashboard-page">
         <header class="page-header">
           <h1>Macro Tracker</h1>
         </header>
+
+        ${showSampleBanner ? `
+        <div class="sample-banner" id="sample-banner">
+          <span>Showing sample data. <a href="#/register">Create an account</a> to start tracking your own.</span>
+          <button type="button" id="sample-dismiss-btn" class="btn-icon" aria-label="Dismiss sample data">&times;</button>
+        </div>
+        ` : ''}
 
         <div class="date-nav">
           <button id="date-prev" class="btn-icon" aria-label="Previous day">&larr;</button>
@@ -132,6 +142,16 @@ export function dashboardView() {
       </div>
     `,
     init: () => {
+      // Sample-data dismiss
+      const dismissBtn = document.getElementById('sample-dismiss-btn');
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => {
+          dismissSampleData();
+          document.getElementById('sample-banner')?.remove();
+          loadMeals(state.selectedDate);
+        });
+      }
+
       const toggle = document.getElementById('workout-toggle') as HTMLInputElement;
       const toggleWrap = document.getElementById('workout-toggle-wrap')!;
 

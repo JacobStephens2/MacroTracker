@@ -684,6 +684,31 @@ input, button, select, textarea {
   transition: all 0.15s;
 }
 
+/* ===== SAMPLE-DATA BANNER (guest mode) ===== */
+.sample-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 14px;
+  margin: 4px 0 12px;
+  background: rgba(16, 185, 129, 0.10);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+.sample-banner span { flex: 1; }
+.sample-banner a {
+  color: var(--primary-container);
+  font-weight: 600;
+}
+.sample-banner .btn-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
 /* ===== THEME TOGGLE (segmented control) ===== */
 .theme-toggle {
   display: flex;

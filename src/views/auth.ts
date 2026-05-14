@@ -1,7 +1,7 @@
 import { auth } from '../api';
 import { setState } from '../state';
 import { navigate, getQueryParams } from '../router';
-import { setGuestMode, getGuestUser } from '../local-db';
+import { setGuestMode, getGuestUser, seedSampleData } from '../local-db';
 
 export function loginView() {
   return {
@@ -61,6 +61,7 @@ export function loginView() {
 
       document.getElementById('guest-btn')!.addEventListener('click', () => {
         setGuestMode(true);
+        seedSampleData();
         setState({ user: getGuestUser() });
         navigate('#/');
       });
