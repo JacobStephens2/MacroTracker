@@ -684,6 +684,33 @@ input, button, select, textarea {
   transition: all 0.15s;
 }
 
+/* ===== THEME TOGGLE (segmented control) ===== */
+.theme-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-low);
+  border-radius: var(--radius);
+}
+.theme-option {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: calc(var(--radius) - 4px);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.theme-option:hover { color: var(--text); }
+.theme-option.active {
+  background: var(--surface-card);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
 /* ===== WORKOUT-DAY TOGGLE ===== */
 .workout-toggle {
   display: flex;
@@ -1283,107 +1310,89 @@ input.searching,
   }
 }
 
-/* ===== DARK MODE ===== */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #6EE7B7;
-    --primary-container: #34D399;
-    --primary-dark: #10B981;
-    --on-primary-container: #FFFFFF;
+/* ===== DARK MODE =====
+   Activated by the `dark` class on <html>. A small inline script in
+   index.html sets that class on page load from localStorage.mt_theme
+   (values: light | dark | system). The theme.ts module re-applies it
+   when the user changes the setting. */
+html.dark {
+  --primary: #6EE7B7;
+  --primary-container: #34D399;
+  --primary-dark: #10B981;
+  --on-primary-container: #FFFFFF;
 
-    --bg: #0F1419;
-    --surface: #0F1419;
-    --surface-low: #1A2332;
-    --surface-card: #1F2937;
+  --bg: #0F1419;
+  --surface: #0F1419;
+  --surface-low: #1A2332;
+  --surface-card: #1F2937;
 
-    --text: #F0F4F8;
-    --text-secondary: #94A3B8;
-    --text-muted: #64748B;
+  --text: #F0F4F8;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
 
-    --outline: rgba(148, 163, 184, 0.12);
-    --outline-variant: rgba(148, 163, 184, 0.25);
+  --outline: rgba(148, 163, 184, 0.12);
+  --outline-variant: rgba(148, 163, 184, 0.25);
 
-    --danger: #F87171;
+  --danger: #F87171;
 
-    --cal-color: #34D399;
-    --carbs-color: #60A5FA;
-    --protein-color: #F87171;
-    --fat-color: #FBBF24;
-  }
+  --cal-color: #34D399;
+  --carbs-color: #60A5FA;
+  --protein-color: #F87171;
+  --fat-color: #FBBF24;
 
-  body {
-    color-scheme: dark;
-  }
-
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
-    background: var(--surface);
-    color: var(--text);
-    border-color: var(--outline);
-  }
-
-  .food-item:hover {
-    background: rgba(255,255,255,0.04);
-  }
-
-  .modal {
-    background: rgba(0,0,0,0.6);
-  }
-
-  .chip-calories { background: rgba(52,211,153,0.15); color: #34D399; }
-  .chip-carbs { background: rgba(96,165,250,0.15); color: #60A5FA; }
-  .chip-protein { background: rgba(248,113,113,0.15); color: #F87171; }
-  .chip-fat { background: rgba(251,191,36,0.15); color: #FBBF24; }
-
-  .btn-outline {
-    color: var(--primary);
-    border-color: var(--outline-variant);
-  }
-
-  .btn-primary {
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
-  }
-
-  .date-label {
-    background: var(--surface-card);
-    color: var(--text);
-    border-color: var(--outline);
-  }
-
-  .ingredient-search .food-list {
-    background: var(--surface-card);
-    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.3);
-  }
-
-  .bottom-nav {
-    background: rgba(31, 41, 55, 0.80);
-  }
-
-  .macro-summary,
-  .meal-section,
-  .weight-form,
-  .chart-container,
-  .settings-section,
-  .auth-card {
-    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.2);
-  }
-
-  .meal-item-wrapper + .meal-item-wrapper .meal-item,
-  .ingredient-row + .ingredient-row,
-  .weight-entry + .weight-entry {
-    border-color: rgba(148, 163, 184, 0.08);
-  }
-
-  .meal-item {
-    background: var(--surface-card);
-  }
-
-  .meal-item-swipe-bg {
-    background: var(--danger);
-  }
-
-  meta[name="theme-color"] {
-    content: "#0F1419";
-  }
+  color-scheme: dark;
 }
+
+html.dark .form-group input,
+html.dark .form-group select,
+html.dark .form-group textarea {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--outline);
+}
+
+html.dark .food-item:hover { background: rgba(255,255,255,0.04); }
+html.dark .modal { background: rgba(0,0,0,0.6); }
+
+html.dark .chip-calories { background: rgba(52,211,153,0.15); color: #34D399; }
+html.dark .chip-carbs { background: rgba(96,165,250,0.15); color: #60A5FA; }
+html.dark .chip-protein { background: rgba(248,113,113,0.15); color: #F87171; }
+html.dark .chip-fat { background: rgba(251,191,36,0.15); color: #FBBF24; }
+
+html.dark .btn-outline {
+  color: var(--primary);
+  border-color: var(--outline-variant);
+}
+
+html.dark .btn-primary { box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15); }
+
+html.dark .date-label {
+  background: var(--surface-card);
+  color: var(--text);
+  border-color: var(--outline);
+}
+
+html.dark .ingredient-search .food-list {
+  background: var(--surface-card);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .bottom-nav { background: rgba(31, 41, 55, 0.80); }
+
+html.dark .macro-summary,
+html.dark .meal-section,
+html.dark .weight-form,
+html.dark .chart-container,
+html.dark .settings-section,
+html.dark .auth-card {
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.2);
+}
+
+html.dark .meal-item-wrapper + .meal-item-wrapper .meal-item,
+html.dark .ingredient-row + .ingredient-row,
+html.dark .weight-entry + .weight-entry {
+  border-color: rgba(148, 163, 184, 0.08);
+}
+
+html.dark .meal-item { background: var(--surface-card); }
+html.dark .meal-item-swipe-bg { background: var(--danger); }

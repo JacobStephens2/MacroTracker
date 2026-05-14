@@ -2,6 +2,7 @@ import { auth, API_BASE, getToken } from '../api';
 import { state, setState } from '../state';
 import { navigate } from '../router';
 import { isGuestMode, clearGuestData } from '../local-db';
+import { getTheme, setTheme, type ThemePref } from '../theme';
 
 async function downloadCsv(path: string, filename: string) {
   const token = getToken();
@@ -68,6 +69,8 @@ export function settingsView() {
         <button id="logout-btn" class="btn btn-danger btn-block">Log Out</button>
       </div>`;
 
+  const theme = getTheme();
+
   return {
     html: `
       <div class="page">
@@ -76,6 +79,15 @@ export function settingsView() {
         </header>
 
         ${guestBanner}
+
+        <div class="settings-section">
+          <h3>Appearance</h3>
+          <div class="theme-toggle" role="radiogroup" aria-label="Theme">
+            <button type="button" class="theme-option ${theme === 'light' ? 'active' : ''}" data-theme="light" role="radio" aria-checked="${theme === 'light'}">Light</button>
+            <button type="button" class="theme-option ${theme === 'dark' ? 'active' : ''}" data-theme="dark" role="radio" aria-checked="${theme === 'dark'}">Dark</button>
+            <button type="button" class="theme-option ${theme === 'system' ? 'active' : ''}" data-theme="system" role="radio" aria-checked="${theme === 'system'}">System</button>
+          </div>
+        </div>
 
         <div class="settings-section">
           <h3>Profile</h3>
@@ -163,6 +175,19 @@ export function settingsView() {
       </div>
     `,
     init: () => {
+      // Theme toggle
+      document.querySelectorAll('.theme-option').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const pref = (btn as HTMLElement).dataset.theme as ThemePref;
+          setTheme(pref);
+          document.querySelectorAll('.theme-option').forEach((b) => {
+            const active = (b as HTMLElement).dataset.theme === pref;
+            b.classList.toggle('active', active);
+            b.setAttribute('aria-checked', String(active));
+          });
+        });
+      });
+
       // Profile form
       document.getElementById('profile-form')!.addEventListener('submit', async (e) => {
         e.preventDefault();

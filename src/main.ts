@@ -1,4 +1,5 @@
 import './styles.css';
+import { initTheme } from './theme';
 import { route, startRouter } from './router';
 import { auth } from './api';
 import { state, setState } from './state';
@@ -46,6 +47,7 @@ route('/settings', requireUser(() => settingsView()));
 
 // Bootstrap: check auth state
 async function init() {
+  initTheme();
   const app = document.getElementById('app')!;
   app.innerHTML = '<div class="loading-screen"><img class="logo-icon" src="/logo.svg" alt="Macro Tracker" /><p>Loading...</p></div>';
 
