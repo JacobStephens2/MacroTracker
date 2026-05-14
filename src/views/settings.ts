@@ -101,6 +101,7 @@ export function settingsView() {
 
         <div class="settings-section">
           <h3>Daily Targets</h3>
+          <p class="text-muted" style="margin-bottom:12px">Used on rest days. Workout-day targets are below.</p>
           <form id="targets-form">
             <div class="form-row">
               <div class="form-group">
@@ -124,6 +125,35 @@ export function settingsView() {
             </div>
             <div id="targets-msg" class="form-success hidden"></div>
             <button type="submit" class="btn btn-primary btn-block">Save Targets</button>
+          </form>
+        </div>
+
+        <div class="settings-section">
+          <h3>Workout-Day Targets</h3>
+          <p class="text-muted" style="margin-bottom:12px">Used when a day is marked as a workout day on the dashboard.</p>
+          <form id="workout-targets-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="s-wcal">Calories</label>
+                <input type="number" id="s-wcal" value="${user.workoutTargetCalories}" min="500" max="10000" />
+              </div>
+              <div class="form-group">
+                <label for="s-wcarbs">Carbs (g)</label>
+                <input type="number" id="s-wcarbs" value="${user.workoutTargetCarbsG}" min="0" max="1000" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="s-wprotein">Protein (g)</label>
+                <input type="number" id="s-wprotein" value="${user.workoutTargetProteinG}" min="0" max="1000" />
+              </div>
+              <div class="form-group">
+                <label for="s-wfat">Fat (g)</label>
+                <input type="number" id="s-wfat" value="${user.workoutTargetFatG}" min="0" max="500" />
+              </div>
+            </div>
+            <div id="workout-targets-msg" class="form-success hidden"></div>
+            <button type="submit" class="btn btn-primary btn-block">Save Workout Targets</button>
           </form>
         </div>
 
@@ -164,6 +194,25 @@ export function settingsView() {
           showMsg('targets-msg', 'Targets saved!', 'success');
         } catch (err: any) {
           showMsg('targets-msg', err.message, 'error');
+        }
+      });
+
+      // Workout targets form
+      document.getElementById('workout-targets-form')!.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const workoutTargetCalories = parseInt((document.getElementById('s-wcal') as HTMLInputElement).value);
+        const workoutTargetCarbsG = parseInt((document.getElementById('s-wcarbs') as HTMLInputElement).value);
+        const workoutTargetProteinG = parseInt((document.getElementById('s-wprotein') as HTMLInputElement).value);
+        const workoutTargetFatG = parseInt((document.getElementById('s-wfat') as HTMLInputElement).value);
+
+        try {
+          const { user: updated } = await auth.updateProfile({
+            workoutTargetCalories, workoutTargetCarbsG, workoutTargetProteinG, workoutTargetFatG,
+          } as any);
+          setState({ user: updated });
+          showMsg('workout-targets-msg', 'Workout targets saved!', 'success');
+        } catch (err: any) {
+          showMsg('workout-targets-msg', err.message, 'error');
         }
       });
 

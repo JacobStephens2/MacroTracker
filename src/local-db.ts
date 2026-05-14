@@ -19,6 +19,7 @@ export function clearGuestData() {
   localStorage.removeItem('guest_recipes');
   localStorage.removeItem('guest_recipe_ingredients');
   localStorage.removeItem('guest_weight');
+  localStorage.removeItem('guest_workout_days');
   localStorage.removeItem('guest_next_id');
 }
 
@@ -52,10 +53,14 @@ const DEFAULT_GUEST_USER: User = {
   targetCarbsG: 250,
   targetProteinG: 150,
   targetFatG: 65,
+  workoutTargetCalories: 2300,
+  workoutTargetCarbsG: 290,
+  workoutTargetProteinG: 170,
+  workoutTargetFatG: 75,
 };
 
 export function getGuestUser(): User {
-  return getStore('guest_user', DEFAULT_GUEST_USER);
+  return { ...DEFAULT_GUEST_USER, ...getStore('guest_user', DEFAULT_GUEST_USER) };
 }
 
 // Auth
@@ -590,5 +595,21 @@ export const localWeight = {
     const logs = getStore<WeightLog[]>('guest_weight', []).filter((l) => l.id !== id);
     setStore('guest_weight', logs);
     return { success: true };
+  },
+};
+
+// Workout days
+export const localWorkoutDays = {
+  get: async (date: string): Promise<{ isWorkoutDay: boolean }> => {
+    const days = getStore<Record<string, boolean>>('guest_workout_days', {});
+    return { isWorkoutDay: !!days[date] };
+  },
+
+  set: async (date: string, isWorkoutDay: boolean): Promise<{ isWorkoutDay: boolean }> => {
+    const days = getStore<Record<string, boolean>>('guest_workout_days', {});
+    if (isWorkoutDay) days[date] = true;
+    else delete days[date];
+    setStore('guest_workout_days', days);
+    return { isWorkoutDay };
   },
 };

@@ -117,6 +117,10 @@ router.post('/login', async (req: Request, res: Response) => {
         targetCarbsG: user.target_carbs_g,
         targetProteinG: user.target_protein_g,
         targetFatG: user.target_fat_g,
+        workoutTargetCalories: user.workout_target_calories,
+        workoutTargetCarbsG: user.workout_target_carbs_g,
+        workoutTargetProteinG: user.workout_target_protein_g,
+        workoutTargetFatG: user.workout_target_fat_g,
       },
       token,
     });
@@ -154,7 +158,11 @@ router.get('/me', requireAuth, (req: Request, res: Response) => {
 router.put('/me', requireAuth, async (req: Request, res: Response) => {
   try {
     const db = getDb();
-    const { firstName, heightInches, currentWeightLbs, targetCalories, targetCarbsG, targetProteinG, targetFatG } = req.body;
+    const {
+      firstName, heightInches, currentWeightLbs,
+      targetCalories, targetCarbsG, targetProteinG, targetFatG,
+      workoutTargetCalories, workoutTargetCarbsG, workoutTargetProteinG, workoutTargetFatG,
+    } = req.body;
     db.prepare(`
       UPDATE users SET
         first_name = COALESCE(?, first_name),
@@ -163,9 +171,18 @@ router.put('/me', requireAuth, async (req: Request, res: Response) => {
         target_calories = COALESCE(?, target_calories),
         target_carbs_g = COALESCE(?, target_carbs_g),
         target_protein_g = COALESCE(?, target_protein_g),
-        target_fat_g = COALESCE(?, target_fat_g)
+        target_fat_g = COALESCE(?, target_fat_g),
+        workout_target_calories = COALESCE(?, workout_target_calories),
+        workout_target_carbs_g = COALESCE(?, workout_target_carbs_g),
+        workout_target_protein_g = COALESCE(?, workout_target_protein_g),
+        workout_target_fat_g = COALESCE(?, workout_target_fat_g)
       WHERE id = ?
-    `).run(firstName, heightInches, currentWeightLbs, targetCalories, targetCarbsG, targetProteinG, targetFatG, req.user!.userId);
+    `).run(
+      firstName, heightInches, currentWeightLbs,
+      targetCalories, targetCarbsG, targetProteinG, targetFatG,
+      workoutTargetCalories, workoutTargetCarbsG, workoutTargetProteinG, workoutTargetFatG,
+      req.user!.userId
+    );
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user!.userId) as any;
     res.json({
@@ -180,6 +197,10 @@ router.put('/me', requireAuth, async (req: Request, res: Response) => {
         targetCarbsG: user.target_carbs_g,
         targetProteinG: user.target_protein_g,
         targetFatG: user.target_fat_g,
+        workoutTargetCalories: user.workout_target_calories,
+        workoutTargetCarbsG: user.workout_target_carbs_g,
+        workoutTargetProteinG: user.workout_target_protein_g,
+        workoutTargetFatG: user.workout_target_fat_g,
       },
     });
   } catch (e) {

@@ -9,6 +9,10 @@ export interface User {
   targetCarbsG: number;
   targetProteinG: number;
   targetFatG: number;
+  workoutTargetCalories: number;
+  workoutTargetCarbsG: number;
+  workoutTargetProteinG: number;
+  workoutTargetFatG: number;
 }
 
 export interface FoodMeasure {

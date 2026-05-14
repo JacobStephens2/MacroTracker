@@ -31,7 +31,17 @@ function initSchema() {
       target_carbs_g INTEGER DEFAULT 340,
       target_protein_g INTEGER DEFAULT 150,
       target_fat_g INTEGER DEFAULT 70,
+      workout_target_calories INTEGER DEFAULT 2890,
+      workout_target_carbs_g INTEGER DEFAULT 380,
+      workout_target_protein_g INTEGER DEFAULT 170,
+      workout_target_fat_g INTEGER DEFAULT 80,
       created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS workout_days (
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      date TEXT NOT NULL,
+      PRIMARY KEY (user_id, date)
     );
 
     CREATE TABLE IF NOT EXISTS email_verification_tokens (
@@ -165,6 +175,18 @@ function initSchema() {
       DROP TABLE weight_logs;
       ALTER TABLE weight_logs_new RENAME TO weight_logs;
       CREATE INDEX IF NOT EXISTS idx_weight_logs_user_date ON weight_logs(user_id, date);
+    `);
+  }
+
+  // Migration: workout-day targets and workout_days table
+  const userCols = db.prepare("PRAGMA table_info(users)").all() as any[];
+  const userColNames = userCols.map((c: any) => c.name);
+  if (!userColNames.includes('workout_target_calories')) {
+    db.exec(`
+      ALTER TABLE users ADD COLUMN workout_target_calories INTEGER DEFAULT 2890;
+      ALTER TABLE users ADD COLUMN workout_target_carbs_g INTEGER DEFAULT 380;
+      ALTER TABLE users ADD COLUMN workout_target_protein_g INTEGER DEFAULT 170;
+      ALTER TABLE users ADD COLUMN workout_target_fat_g INTEGER DEFAULT 80;
     `);
   }
 

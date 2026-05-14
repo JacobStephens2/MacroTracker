@@ -7,6 +7,7 @@ import {
   localMeals,
   localRecipes,
   localWeight,
+  localWorkoutDays,
 } from './local-db';
 
 export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined) || '/api';
@@ -348,6 +349,22 @@ export const recipes = {
     isGuestMode()
       ? localRecipes.copy(id)
       : request<{ recipe: { id: number } }>(`/recipes/${id}/copy`, { method: 'POST' }),
+};
+
+// Workout days
+export const workoutDays = {
+  get: (date: string) =>
+    isGuestMode()
+      ? localWorkoutDays.get(date)
+      : request<{ isWorkoutDay: boolean }>(`/workout-days/${date}`),
+
+  set: (date: string, isWorkoutDay: boolean) =>
+    isGuestMode()
+      ? localWorkoutDays.set(date, isWorkoutDay)
+      : request<{ isWorkoutDay: boolean }>(`/workout-days/${date}`, {
+          method: 'PUT',
+          body: JSON.stringify({ isWorkoutDay }),
+        }),
 };
 
 // Weight

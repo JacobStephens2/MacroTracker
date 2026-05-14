@@ -681,6 +681,35 @@ input, button, select, textarea {
   margin-top: 10px;
   transition: all 0.15s;
 }
+
+/* ===== WORKOUT-DAY TOGGLE ===== */
+.workout-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 4px 0 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.workout-toggle input {
+  margin: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.workout-toggle.active {
+  background: rgba(16,185,129,0.08);
+  border-color: var(--primary-container);
+  color: var(--primary-container);
+}
 .btn-add-meal:hover {
   border-color: var(--primary-container);
   background: rgba(16,185,129,0.04);

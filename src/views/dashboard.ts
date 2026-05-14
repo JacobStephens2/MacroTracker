@@ -1,4 +1,4 @@
-import { meals as mealsApi } from '../api';
+import { meals as mealsApi, workoutDays as workoutDaysApi } from '../api';
 import { state, formatDate, todayStr, toLocalDateStr } from '../state';
 import { navigate } from '../router';
 import type { MealLog, MealType } from '../types';
@@ -16,8 +16,33 @@ const MEAL_LABELS: Record<MealType, string> = {
   snack: 'Snacks',
 };
 
+// Local cache of which dates are workout days, so the dashboard can render
+// targets immediately on date change without flashing rest-day numbers first.
+const workoutDayCache: Record<string, boolean> = {};
+let currentIsWorkout = false;
+
+function getTargets() {
+  const user = state.user;
+  if (currentIsWorkout && user) {
+    return {
+      cal: user.workoutTargetCalories || user.targetCalories || 2890,
+      carbs: user.workoutTargetCarbsG || user.targetCarbsG || 380,
+      protein: user.workoutTargetProteinG || user.targetProteinG || 170,
+      fat: user.workoutTargetFatG || user.targetFatG || 80,
+    };
+  }
+  return {
+    cal: user?.targetCalories || 2590,
+    carbs: user?.targetCarbsG || 340,
+    protein: user?.targetProteinG || 150,
+    fat: user?.targetFatG || 70,
+  };
+}
+
 export function dashboardView() {
   const date = state.selectedDate;
+  currentIsWorkout = workoutDayCache[date] || false;
+  const t = getTargets();
 
   return {
     html: `
@@ -34,6 +59,11 @@ export function dashboardView() {
           </div>
           <button id="date-next" class="btn-icon" aria-label="Next day">&rarr;</button>
         </div>
+
+        <label class="workout-toggle" id="workout-toggle-wrap">
+          <input type="checkbox" id="workout-toggle" />
+          <span class="workout-toggle-label">Workout day</span>
+        </label>
 
         <div id="macro-summary" class="macro-summary">
           <div class="macro-ring" data-macro="calories">
@@ -52,7 +82,7 @@ export function dashboardView() {
               <div class="macro-bar-track">
                 <div class="macro-bar-fill bar-carbs" id="carbs-bar"></div>
               </div>
-              <span class="macro-bar-value" id="carbs-value">0 / ${state.user?.targetCarbsG || 340}g</span>
+              <span class="macro-bar-value" id="carbs-value">0 / ${t.carbs}g</span>
             </div>
             <div class="macro-bar-remaining" id="carbs-remaining"></div>
             <div class="macro-bar-row">
@@ -60,7 +90,7 @@ export function dashboardView() {
               <div class="macro-bar-track">
                 <div class="macro-bar-fill bar-protein" id="protein-bar"></div>
               </div>
-              <span class="macro-bar-value" id="protein-value">0 / ${state.user?.targetProteinG || 150}g</span>
+              <span class="macro-bar-value" id="protein-value">0 / ${t.protein}g</span>
             </div>
             <div class="macro-bar-remaining" id="protein-remaining"></div>
             <div class="macro-bar-row">
@@ -68,7 +98,7 @@ export function dashboardView() {
               <div class="macro-bar-track">
                 <div class="macro-bar-fill bar-fat" id="fat-bar"></div>
               </div>
-              <span class="macro-bar-value" id="fat-value">0 / ${state.user?.targetFatG || 70}g</span>
+              <span class="macro-bar-value" id="fat-value">0 / ${t.fat}g</span>
             </div>
             <div class="macro-bar-remaining" id="fat-remaining"></div>
           </div>
@@ -102,13 +132,45 @@ export function dashboardView() {
       </div>
     `,
     init: () => {
+      const toggle = document.getElementById('workout-toggle') as HTMLInputElement;
+      const toggleWrap = document.getElementById('workout-toggle-wrap')!;
+
+      const applyWorkoutState = (isWorkout: boolean) => {
+        currentIsWorkout = isWorkout;
+        workoutDayCache[state.selectedDate] = isWorkout;
+        toggle.checked = isWorkout;
+        toggleWrap.classList.toggle('active', isWorkout);
+      };
+
+      const loadWorkoutDay = async (date: string) => {
+        // Use cached value immediately, then verify from server.
+        applyWorkoutState(!!workoutDayCache[date]);
+        try {
+          const { isWorkoutDay } = await workoutDaysApi.get(date);
+          if (workoutDayCache[date] !== isWorkoutDay) {
+            applyWorkoutState(isWorkoutDay);
+            updateMacroSummaryFromDom();
+          }
+        } catch { /* ignore */ }
+      };
+
       // Date navigation
       const refreshDate = () => {
         document.getElementById('date-label')!.textContent = formatDate(state.selectedDate);
         document.getElementById('date-sub')!.textContent = formatDateSub(state.selectedDate);
         document.getElementById('date-next')!.classList.toggle('invisible', state.selectedDate >= todayStr());
+        loadWorkoutDay(state.selectedDate);
         loadMeals(state.selectedDate);
       };
+
+      toggle.addEventListener('change', async () => {
+        const checked = toggle.checked;
+        applyWorkoutState(checked);
+        updateMacroSummaryFromDom();
+        try {
+          await workoutDaysApi.set(state.selectedDate, checked);
+        } catch { /* ignore — local cache keeps UI consistent */ }
+      });
 
       document.getElementById('date-prev')!.addEventListener('click', () => {
         const d = new Date(state.selectedDate + 'T12:00:00');
@@ -173,9 +235,20 @@ export function dashboardView() {
         }, 2000);
       });
 
+      loadWorkoutDay(state.selectedDate);
       loadMeals(state.selectedDate);
     },
   };
+}
+
+// Cached meal list for the current date so we can re-render macro totals
+// when the workout-day toggle flips without re-fetching.
+let cachedMeals: MealLog[] = [];
+
+function updateMacroSummaryFromDom() {
+  updateMacroSummary(cachedMeals);
+  const container = document.getElementById('meals-container');
+  if (container) renderMeals(container, cachedMeals, state.selectedDate);
 }
 
 async function loadMeals(date: string) {
@@ -184,6 +257,7 @@ async function loadMeals(date: string) {
 
   try {
     const { meals: mealList } = await mealsApi.getByDate(date);
+    cachedMeals = mealList;
     renderMeals(container, mealList, date);
     updateMacroSummary(mealList);
   } catch {
@@ -202,11 +276,11 @@ function updateMacroSummary(mealList: MealLog[]) {
     { calories: 0, carbs: 0, protein: 0, fat: 0 }
   );
 
-  const user = state.user;
-  const targetCal = user?.targetCalories || 2590;
-  const targetCarbs = user?.targetCarbsG || 340;
-  const targetProtein = user?.targetProteinG || 150;
-  const targetFat = user?.targetFatG || 70;
+  const t = getTargets();
+  const targetCal = t.cal;
+  const targetCarbs = t.carbs;
+  const targetProtein = t.protein;
+  const targetFat = t.fat;
 
   // Update calorie ring
   const calValue = document.getElementById('cal-value');
@@ -276,11 +350,11 @@ function renderMeals(container: HTMLElement, mealList: MealLog[], date: string) 
     );
 
     // Per-meal target: daily / 4 (equal split)
-    const user = state.user;
-    const mealTargetCal = Math.round((user?.targetCalories || 2590) / 4);
-    const mealTargetC = Math.round((user?.targetCarbsG || 340) / 4);
-    const mealTargetP = Math.round((user?.targetProteinG || 150) / 4);
-    const mealTargetF = Math.round((user?.targetFatG || 70) / 4);
+    const tg = getTargets();
+    const mealTargetCal = Math.round(tg.cal / 4);
+    const mealTargetC = Math.round(tg.carbs / 4);
+    const mealTargetP = Math.round(tg.protein / 4);
+    const mealTargetF = Math.round(tg.fat / 4);
     const mealPct = mealTargetCal > 0 ? subtotals.cal / mealTargetCal : 0;
     const mealStatus = mealPct >= 0.9 ? 'on-track' : mealPct >= 0.5 ? 'partial' : items.length > 0 ? 'low' : '';
 
