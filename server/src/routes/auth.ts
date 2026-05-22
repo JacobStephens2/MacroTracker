@@ -72,6 +72,19 @@ router.post('/register', async (req: Request, res: Response) => {
       console.error('Failed to send verification email:', e);
     }
 
+    try {
+      const transport = getMailTransport();
+      const ua = (req.headers['user-agent'] || '').toString().slice(0, 1024) || 'unknown';
+      await transport.sendMail({
+        from: SMTP_FROM,
+        to: 'jacob@stephens.page',
+        subject: 'Macro Tracker — New Account Created',
+        text: `A new account was created on Macro Tracker.\n\nName: ${firstName.trim()}\nEmail: ${email.toLowerCase().trim()}\nDate: ${new Date().toISOString()}\nDevice: ${ua}`,
+      });
+    } catch (e) {
+      console.error('Failed to send admin notification:', e);
+    }
+
     const token = signToken({ userId, email: email.toLowerCase().trim(), firstName: firstName.trim() });
     setTokenCookie(res, token);
     res.json({ user: { id: userId, email, firstName, emailVerified: false }, token });
