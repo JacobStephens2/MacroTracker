@@ -47,8 +47,9 @@
   --header-height: 56px;
 
   /* Safe-area insets (status bar / gesture nav / notch).
-     On Android 15+ edge-to-edge, Capacitor injects --safe-area-inset-*
-     onto <html>; iOS/web fall back to the native env() values. */
+     On Android edge-to-edge, MainActivity injects the real window insets as
+     --safe-area-inset-* onto <html> (CSS env() only sees cutouts there, not
+     the system bars); iOS/web fall back to the native env() values. */
   --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
   --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
   --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
