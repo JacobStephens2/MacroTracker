@@ -46,6 +46,14 @@
   --nav-height: 64px;
   --header-height: 56px;
 
+  /* Safe-area insets (status bar / gesture nav / notch).
+     On Android 15+ edge-to-edge, Capacitor injects --safe-area-inset-*
+     onto <html>; iOS/web fall back to the native env() values. */
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+
   /* Font */
   --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -62,7 +70,7 @@ html, body {
 }
 
 body {
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: var(--safe-bottom);
 }
 
 a { color: var(--primary); text-decoration: none; }
@@ -217,7 +225,7 @@ input, button, select, textarea {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 24px;
+  padding: calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left));
   background: var(--bg);
 }
 
@@ -303,9 +311,10 @@ input, button, select, textarea {
 
 /* ===== PAGE LAYOUT ===== */
 .page {
-  /* Bottom padding clears the fixed bottom nav (var(--nav-height))
-     plus the device safe area (home-bar / gesture inset). */
-  padding: 0 16px calc(var(--nav-height) + env(safe-area-inset-bottom, 0) + 16px);
+  /* Side padding clears any landscape notch; bottom padding clears the
+     fixed bottom nav (var(--nav-height)) plus the device safe area
+     (home-bar / gesture inset). */
+  padding: 0 calc(16px + var(--safe-right)) calc(var(--nav-height) + var(--safe-bottom) + 16px) calc(16px + var(--safe-left));
   max-width: 600px;
   margin: 0 auto;
 }
@@ -314,7 +323,9 @@ input, button, select, textarea {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 0;
+  /* Top padding clears the status bar / notch in edge-to-edge mode.
+     The sticky bg then paints a solid backdrop behind the status bar. */
+  padding: calc(14px + var(--safe-top)) 0 14px;
   position: sticky;
   top: 0;
   background: var(--bg);
@@ -998,7 +1009,9 @@ input.searching,
 .modal-content {
   background: var(--surface-card);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  padding: 20px;
+  /* Extra bottom padding keeps actions clear of the gesture/button nav
+     for this bottom-anchored sheet. */
+  padding: 20px 20px calc(20px + var(--safe-bottom));
   width: 100%;
   max-width: 600px;
   max-height: 85vh;
@@ -1278,7 +1291,9 @@ input.searching,
   bottom: 0;
   left: 0;
   right: 0;
-  height: var(--nav-height);
+  /* Extend the bar under the gesture/button nav so its blurred bg fills
+     the inset, while padding keeps the items above the system bar. */
+  height: calc(var(--nav-height) + var(--safe-bottom));
   background: rgba(255, 255, 255, 0.80);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1286,7 +1301,7 @@ input.searching,
   align-items: center;
   justify-content: space-around;
   z-index: 50;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: var(--safe-bottom);
 }
 
 .nav-item {
