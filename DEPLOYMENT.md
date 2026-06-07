@@ -116,6 +116,16 @@ npx tsc
 sudo systemctl restart macros-api
 ```
 
+### Android APK
+
+The web deploy serves from `macros.stephens.page`, so `API_BASE` defaults to the same-origin `/api`. The Capacitor WebView runs at `https://localhost`, so it needs the absolute API base baked in at build time via `VITE_API_BASE`. A plain `npm run build` falls back to `/api`, which the WebView resolves to its own bundled `index.html` and login fails with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. Always build the app with `build:android`:
+
+```bash
+npm run build:android   # VITE_API_BASE=https://macros.stephens.page/api + cap sync
+cd android && JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew assembleRelease
+# signed APK: android/app/build/outputs/apk/release/app-release.apk
+```
+
 ### Verify
 
 ```bash
