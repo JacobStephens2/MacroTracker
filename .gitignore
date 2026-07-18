@@ -4,3 +4,13 @@ server/dist/
 server/data/
 server/node_modules/
 *.tgz
+
+# Built site output (Vite/PWA) emitted to the repo root
+/assets/
+/sw.js
+/registerSW.js
+/workbox-*.js
+/manifest.webmanifest
+/favicon.png
+/logo.svg
+/app-icons/
