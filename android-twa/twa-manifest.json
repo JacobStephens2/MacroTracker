@@ -1,8 +1,8 @@
 {
   "packageId": "page.stephens.macros.twa",
   "host": "macros.stephens.page",
-  "name": "Macro Tracker",
-  "launcherName": "Macros",
+  "name": "Fareloch",
+  "launcherName": "Fareloch",
   "display": "standalone",
   "themeColor": "#10B981",
   "themeColorDark": "#111827",

@@ -7,9 +7,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['app-icons/*.png'],
       manifest: {
-        name: 'Macro Tracker',
-        short_name: 'Macros',
-        description: 'Track your daily macronutrients and calories',
+        name: 'Fareloch — Macro & Calorie Log',
+        short_name: 'Fareloch',
+        description: 'Private food, macro, recipe, and weight tracking',
         theme_color: '#10B981',
         background_color: '#F9FAFB',
         display: 'standalone',

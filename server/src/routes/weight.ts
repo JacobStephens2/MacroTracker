@@ -74,7 +74,7 @@ router.get('/export/csv', requireAuth, (req: Request, res: Response) => {
   });
 
   res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', 'attachment; filename=macro-tracker-weight.csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=fareloch-weight.csv');
   res.send([header, ...rows].join('\n'));
 });
 

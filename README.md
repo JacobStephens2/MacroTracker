@@ -1,8 +1,12 @@
-# Macro Tracker
+# Fareloch
 
-A self-hosted macronutrient tracking PWA built to replace MyFitnessPal. Track daily carbs, protein, fat, and calories with per-meal breakdowns, food search, barcode scanning, recipe management, and weight tracking over time.
+A self-hosted PWA for tracking daily macronutrients and calories. Meal logging, food search via Open Food Facts and USDA, barcode scanning, recipe management, weight tracking, and CSV export.
 
-Live at **https://macros.stephens.page**
+Your food. Your targets. Your data.
+
+Live at **https://macros.stephens.page** · Domain: **fareloch.app**
+
+See [FARELOCH-NAME.md](./FARELOCH-NAME.md) for the rename decision record.
 
 ## Features
 
@@ -17,7 +21,7 @@ Live at **https://macros.stephens.page**
 - **Tap to edit, swipe to delete** — touch-friendly meal management
 - **CSV export** — download meal logs and weight data
 - **Dark mode** — automatic via `prefers-color-scheme`
-- **Email/password auth** — with email verification and password reset (Mandrill SMTP)
+- **Email/password auth** — with email verification and password reset
 - **PWA** — installable, service worker for fast loading, TWA-ready for Google Play
 
 ## Tech Stack

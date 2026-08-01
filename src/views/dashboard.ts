@@ -51,7 +51,7 @@ export function dashboardView() {
     html: `
       <div class="page dashboard-page">
         <header class="page-header">
-          <h1>Macro Tracker</h1>
+          <h1>Fareloch</h1>
         </header>
 
         ${showSampleBanner ? `

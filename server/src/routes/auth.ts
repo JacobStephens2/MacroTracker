@@ -65,7 +65,7 @@ router.post('/register', async (req: Request, res: Response) => {
       await transport.sendMail({
         from: SMTP_FROM,
         to: email,
-        subject: 'Verify your Macro Tracker account',
+        subject: 'Verify your Fareloch account',
         html: `<p>Hi ${firstName},</p><p>Click the link below to verify your email:</p><p><a href="${APP_URL}/#/verify-email?token=${verifyToken}">Verify Email</a></p><p>This link expires in 24 hours.</p>`,
       });
     } catch (e) {
@@ -78,8 +78,8 @@ router.post('/register', async (req: Request, res: Response) => {
       await transport.sendMail({
         from: SMTP_FROM,
         to: 'jacob@stephens.page',
-        subject: 'Macro Tracker — New Account Created',
-        text: `A new account was created on Macro Tracker.\n\nName: ${firstName.trim()}\nEmail: ${email.toLowerCase().trim()}\nDate: ${new Date().toISOString()}\nDevice: ${ua}`,
+        subject: 'Fareloch — New Account Created',
+        text: `A new account was created on Fareloch.\n\nName: ${firstName.trim()}\nEmail: ${email.toLowerCase().trim()}\nDate: ${new Date().toISOString()}\nDevice: ${ua}`,
       });
     } catch (e) {
       console.error('Failed to send admin notification:', e);
@@ -302,7 +302,7 @@ router.post('/resend-verification', requireAuth, async (req: Request, res: Respo
     await transport.sendMail({
       from: SMTP_FROM,
       to: user.email,
-      subject: 'Verify your Macro Tracker account',
+      subject: 'Verify your Fareloch account',
       html: `<p>Hi ${user.first_name},</p><p>Click the link below to verify your email:</p><p><a href="${APP_URL}/#/verify-email?token=${verifyToken}">Verify Email</a></p><p>This link expires in 24 hours.</p>`,
     });
 
@@ -341,7 +341,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
     await transport.sendMail({
       from: SMTP_FROM,
       to: user.email,
-      subject: 'Reset your Macro Tracker password',
+      subject: 'Reset your Fareloch password',
       html: `<p>Hi ${user.first_name},</p><p>Click the link below to reset your password:</p><p><a href="${APP_URL}/#/reset-password?token=${resetToken}">Reset Password</a></p><p>This link expires in 1 hour.</p>`,
     });
 

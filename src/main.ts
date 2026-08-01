@@ -49,7 +49,7 @@ route('/settings', requireUser(() => settingsView()));
 async function init() {
   initTheme();
   const app = document.getElementById('app')!;
-  app.innerHTML = '<div class="loading-screen"><img class="logo-icon" src="/logo.svg" alt="Macro Tracker" /><p>Loading...</p></div>';
+  app.innerHTML = '<div class="loading-screen"><img class="logo-icon" src="/logo.svg" alt="Fareloch" /><p>Loading...</p></div>';
 
   if (isGuestMode()) {
     const user = getGuestUser();

@@ -87,5 +87,5 @@ app.get('/api/health', (_req, res) => {
 getDb();
 
 app.listen(PORT, () => {
-  console.log(`Macro Tracker API running on port ${PORT}`);
+  console.log(`Fareloch API running on port ${PORT}`);
 });

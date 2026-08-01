@@ -2,7 +2,7 @@
 
 ## Summary
 
-Built and deployed the Macro Tracker PWA from scratch in a single session. The app replaces a $20/month MyFitnessPal subscription with a self-hosted alternative at https://macros.stephens.page.
+Built and deployed Fareloch (originally shipped as Macro Tracker) from scratch in a single session. The app replaces a $20/month MyFitnessPal subscription with a self-hosted alternative at https://macros.stephens.page.
 
 ## What was built
 

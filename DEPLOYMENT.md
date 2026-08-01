@@ -1,6 +1,6 @@
 # Deployment
 
-Macro Tracker runs on a single Ubuntu server with Apache serving the static frontend and reverse-proxying API requests to a Node.js backend.
+Fareloch runs on a single Ubuntu server with Apache serving the static frontend and reverse-proxying API requests to a Node.js backend.
 
 ## Architecture
 
@@ -57,7 +57,7 @@ Required Apache modules: `proxy`, `proxy_http`, `ssl`, `rewrite`.
 **Unit file** (`/etc/systemd/system/macros-api.service`):
 ```ini
 [Unit]
-Description=Macro Tracker API
+Description=Fareloch API
 After=network.target
 
 [Service]
