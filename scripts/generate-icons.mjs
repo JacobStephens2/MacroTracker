@@ -28,7 +28,50 @@ async function main() {
   // Web / PWA
   await writePng(path.join(root, 'public', 'app-icons', 'icon-512.png'), 512);
   await writePng(path.join(root, 'public', 'app-icons', 'icon-192.png'), 192);
+  fs.copyFileSync(svgPath, path.join(root, 'public', 'favicon.svg'));
   await writePng(path.join(root, 'public', 'favicon.png'), 32);
+  await writePng(path.join(root, 'public', 'favicon-16.png'), 16);
+  await writePng(path.join(root, 'public', 'favicon-48.png'), 48);
+
+  // Multi-size ICO (PNG-compressed entries; fine for modern browsers)
+  {
+    const sizes = [16, 32, 48];
+    const images = [];
+    for (const size of sizes) {
+      const data = await sharp(svg, { density: 384 })
+        .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
+      images.push({ size, data });
+    }
+    const headerSize = 6;
+    const entrySize = 16;
+    let offset = headerSize + entrySize * images.length;
+    const entries = images.map((img) => {
+      const e = { ...img, offset };
+      offset += img.data.length;
+      return e;
+    });
+    const buf = Buffer.alloc(offset);
+    buf.writeUInt16LE(0, 0);
+    buf.writeUInt16LE(1, 2);
+    buf.writeUInt16LE(images.length, 4);
+    entries.forEach((e, i) => {
+      const o = headerSize + i * entrySize;
+      buf.writeUInt8(e.size >= 256 ? 0 : e.size, o);
+      buf.writeUInt8(e.size >= 256 ? 0 : e.size, o + 1);
+      buf.writeUInt8(0, o + 2);
+      buf.writeUInt8(0, o + 3);
+      buf.writeUInt16LE(1, o + 4);
+      buf.writeUInt16LE(32, o + 6);
+      buf.writeUInt32LE(e.data.length, o + 8);
+      buf.writeUInt32LE(e.offset, o + 12);
+      e.data.copy(buf, e.offset);
+    });
+    const icoPath = path.join(root, 'public', 'favicon.ico');
+    fs.writeFileSync(icoPath, buf);
+    console.log('wrote', path.relative(root, icoPath), `(${buf.length} bytes)`);
+  }
 
   // Capacitor Android launcher densities (full icon, already rounded in SVG)
   const androidDensities = {

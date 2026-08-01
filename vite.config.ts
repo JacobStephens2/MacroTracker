@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['app-icons/*.png'],
+      includeAssets: ['app-icons/*.png', 'favicon.png', 'favicon.svg', 'favicon.ico', 'favicon-16.png', 'favicon-48.png', 'logo.svg'],
       manifest: {
         name: 'Fareloch — Macro & Calorie Log',
         short_name: 'Fareloch',
