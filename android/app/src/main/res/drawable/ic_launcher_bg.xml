@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- MacroTracker adaptive-icon background: green gradient matching logo.svg (#10B981 -> #047857) -->
+<!-- Fareloch adaptive-icon background: deep-water teal matching logo.svg -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
@@ -12,8 +12,9 @@
                 android:type="linear"
                 android:startX="15.2" android:startY="0"
                 android:endX="92.8" android:endY="108">
-                <item android:offset="0" android:color="#FF10B981"/>
-                <item android:offset="1" android:color="#FF047857"/>
+                <item android:offset="0" android:color="#FF14B8A6"/>
+                <item android:offset="0.55" android:color="#FF0F766E"/>
+                <item android:offset="1" android:color="#FF115E59"/>
             </gradient>
         </aapt:attr>
     </path>
