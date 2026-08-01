@@ -4,7 +4,7 @@ A self-hosted PWA for tracking daily macronutrients and calories. Meal logging, 
 
 Your food. Your targets. Your data.
 
-Live at **https://macros.stephens.page** · Domain: **fareloch.app**
+Live at **https://fareloch.app** (legacy alias: https://macros.stephens.page)
 
 See [FARELOCH-NAME.md](./FARELOCH-NAME.md) for the rename decision record.
 
@@ -63,9 +63,8 @@ Environment variables for the server (set in systemd service or `.env`):
 ## Deploy
 
 ```bash
-# Frontend
+# Frontend (DocumentRoot is this repo's dist/)
 npm run build
-sudo cp -r dist/* /var/www/macros.stephens.page/
 
 # Server
 cd server

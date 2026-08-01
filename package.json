@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:android": "VITE_API_BASE=https://macros.stephens.page/api npm run build && npx cap sync android",
+    "build:android": "VITE_API_BASE=https://fareloch.app/api npm run build && npx cap sync android",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 {
   "packageId": "page.stephens.macros.twa",
-  "host": "macros.stephens.page",
+  "host": "fareloch.app",
   "name": "Fareloch",
   "launcherName": "Fareloch",
   "display": "standalone",
@@ -13,8 +13,8 @@
   "backgroundColor": "#F9FAFB",
   "enableNotifications": false,
   "startUrl": "/",
-  "iconUrl": "https://macros.stephens.page/app-icons/icon-512.png",
-  "maskableIconUrl": "https://macros.stephens.page/app-icons/icon-512.png",
+  "iconUrl": "https://fareloch.app/app-icons/icon-512.png",
+  "maskableIconUrl": "https://fareloch.app/app-icons/icon-512.png",
   "shortcuts": [],
   "signingKey": {
     "path": "./macros-keystore.jks",
@@ -26,5 +26,5 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "orientation": "portrait",
-  "fullScopeUrl": "https://macros.stephens.page/"
+  "fullScopeUrl": "https://fareloch.app/"
 }

@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-# Build frontend
+# Build frontend into dist/ (Apache DocumentRoot for fareloch.app
+# and the macros.stephens.page alias)
 npm run build
 
-# Copy to web server
-sudo cp -r dist/* /var/www/macros.stephens.page/
-
-echo "Frontend deployed."
+echo "Frontend deployed (served from dist/)."

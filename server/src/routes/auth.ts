@@ -23,8 +23,8 @@ function getMailTransport() {
   });
 }
 
-const SMTP_FROM = process.env.SMTP_FROM || 'noreply@macros.stephens.page';
-const APP_URL = process.env.APP_URL || 'https://macros.stephens.page';
+const SMTP_FROM = process.env.SMTP_FROM || 'noreply@fareloch.app';
+const APP_URL = process.env.APP_URL || 'https://fareloch.app';
 
 // Register
 router.post('/register', async (req: Request, res: Response) => {

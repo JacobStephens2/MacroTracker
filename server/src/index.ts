@@ -26,6 +26,8 @@ const app = express();
 app.set('trust proxy', true);
 
 const allowedOrigins = new Set([
+  'https://fareloch.app',
+  'https://www.fareloch.app',
   'https://macros.stephens.page',
   'https://localhost',
   'capacitor://localhost',

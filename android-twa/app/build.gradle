@@ -6,7 +6,7 @@ plugins {
 
 def twaManifest = [
     applicationId: 'page.stephens.macros.twa',
-    hostName: 'macros.stephens.page',
+    hostName: 'fareloch.app',
     launchUrl: '/',
     name: 'Fareloch',
     launcherName: 'Fareloch',
@@ -54,8 +54,8 @@ android {
         def launchUrl = "https://" + twaManifest.hostName + twaManifest.launchUrl
         resValue "string", "launchUrl", launchUrl
 
-        resValue "string", "webManifestUrl", 'https://macros.stephens.page/manifest.webmanifest'
-        resValue "string", "fullScopeUrl", 'https://macros.stephens.page/'
+        resValue "string", "webManifestUrl", 'https://fareloch.app/manifest.webmanifest'
+        resValue "string", "fullScopeUrl", 'https://fareloch.app/'
 
         resValue "string", "hostName", twaManifest.hostName
 
